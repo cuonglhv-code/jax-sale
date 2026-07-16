@@ -1,0 +1,32 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+/dist
+
+# testing / coverage
+/coverage
+
+# supabase local stack
+/supabase/.branches
+/supabase/.temp
+
+# env — NEVER commit real secrets
+.env
+.env.*
+!.env.local.example
+
+# misc
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+*.swp
