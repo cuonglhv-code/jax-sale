@@ -9,8 +9,15 @@ import {
   type AppRole,
   type ApprovalState,
   type AttainmentState,
+  type ContractType,
+  type CoverStatus,
+  type EmploymentType,
+  type LeaveDayPart,
   type MetricKey,
+  type PersonalLeaveEvent,
   type Priority,
+  type RequestStatus,
+  type RequestType,
   type TaskGroup,
   type TaskStatus,
   NETWORK_WIDE_ROLES,
@@ -96,6 +103,60 @@ export const ATTAINMENT_COLOR: Record<AttainmentState, BadgeColor> = {
   no_result: { text: "var(--att-noresult-text)", bg: "var(--att-noresult-bg)", border: "var(--att-noresult-border)" },
 };
 
+// ── HR Requests labels (slice #004) ──────────────────────────────────────────
+export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
+  annual_leave: "Nghỉ phép năm",
+  sick_leave: "Nghỉ ốm",
+  personal_leave: "Nghỉ việc riêng",
+  unpaid_leave: "Nghỉ không lương",
+  shift_swap: "Đổi ca / lịch dạy",
+  overtime: "Làm thêm giờ",
+  salary_advance: "Tạm ứng lương",
+  purchase: "Đề nghị mua sắm",
+  business_travel: "Công tác",
+};
+
+export const REQUEST_STATUS_LABEL: Record<RequestStatus, string> = {
+  pending: "Chờ duyệt",
+  awaiting_cover: "Chờ người dạy thay",
+  approved: "Đã duyệt",
+  rejected: "Bị từ chối",
+  cancelled: "Đã hủy",
+  withdrawn: "Đã thu hồi",
+};
+
+export const LEAVE_DAY_PART_LABEL: Record<LeaveDayPart, string> = {
+  full: "Cả ngày",
+  morning: "Buổi sáng",
+  afternoon: "Buổi chiều",
+};
+
+export const COVER_STATUS_LABEL: Record<CoverStatus, string> = {
+  nominated: "Đã đề cử",
+  accepted: "Đã nhận dạy thay",
+  declined: "Đã từ chối",
+  released: "Đã giải phóng",
+};
+
+export const EMPLOYMENT_TYPE_LABEL: Record<EmploymentType, string> = {
+  full_time: "Toàn thời gian",
+  part_time: "Bán thời gian",
+};
+
+export const CONTRACT_TYPE_LABEL: Record<ContractType, string> = {
+  indefinite: "Không xác định thời hạn",
+  fixed_term: "Xác định thời hạn",
+  probation: "Thử việc",
+  seasonal: "Thời vụ",
+};
+
+export const PERSONAL_LEAVE_EVENT_LABEL: Record<PersonalLeaveEvent, string> = {
+  marriage_self: "Bản thân kết hôn",
+  marriage_child: "Con kết hôn",
+  bereavement: "Tang lễ",
+  other: "Khác",
+};
+
 // ── Navigation = access matrix (ONE list; spec FR-009/024b) ───────────────────
 // This is BOTH the sidebar definition AND the route-access matrix. Adding a future module = one
 // entry here (no parallel list). Only `dashboard` and `tasks` have pages in this slice; the rest
@@ -113,7 +174,11 @@ export type ModuleKey =
   | "workflows"
   | "performance"
   | "performanceActivity"
-  | "roadmap";
+  | "roadmap"
+  | "hrApprovals"
+  | "hrTimetable"
+  | "hrConfig"
+  | "hrReports";
 
 export interface NavItem {
   key: ModuleKey;
@@ -183,6 +248,33 @@ export const NAV_ITEMS: readonly NavItem[] = [
     route: "/lo-trinh-ielts",
     label: "Lộ trình IELTS",
     roles: ["super_admin", "centre_manager", "centre_admin", "sale_consultant"],
+  },
+  // HR sub-routes under the reserved /nhan-su area (slice #004). The base /nhan-su landing
+  // (submit + my-requests, all roles) is governed by the existing `personnel` entry above; these
+  // add the management-facing sub-routes with their own access scoping (data-model §13).
+  {
+    key: "hrApprovals",
+    route: "/nhan-su/duyet",
+    label: "Duyệt yêu cầu nhân sự",
+    roles: ["super_admin", "centre_manager"],
+  },
+  {
+    key: "hrTimetable",
+    route: "/nhan-su/lich-day",
+    label: "Lịch dạy",
+    roles: ["super_admin", "centre_manager", "centre_admin"],
+  },
+  {
+    key: "hrConfig",
+    route: "/nhan-su/cau-hinh",
+    label: "Cấu hình nghỉ phép",
+    roles: ["super_admin"],
+  },
+  {
+    key: "hrReports",
+    route: "/nhan-su/bao-cao",
+    label: "Báo cáo nhân sự",
+    roles: ["super_admin", "centre_manager"],
   },
 ];
 

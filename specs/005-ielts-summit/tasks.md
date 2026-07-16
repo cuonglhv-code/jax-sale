@@ -21,13 +21,14 @@ D-REUSE).
 
 **Purpose**: New content-data modules and brand tokens every story reads (Principle VII).
 
-- [ ] T001 [P] Create summit copy module (provisional caveat, estimate framings, CTA, warnings,
+- [X] T001 [P] Create summit copy module (provisional caveat, estimate framings, CTA, warnings,
       send success/failure messages, email subject/body templates, summary labels — all
       Vietnamese) in src/lib/domain/ielts/summit-copy.ts
-- [ ] T002 [P] Create per-centre price list content module (PRICES: Record<CentreKey,
-      Partial<Record<CourseCode, number>>>, PRICE_DISPLAY.unpricedLabelVi) with realistic
-      placeholder VND values in src/lib/domain/ielts/pricing.ts
-- [ ] T003 [P] Extend brand tokens with mountain palette (atmosphere layers), mascot-as-climber
+- [X] T002 [P] Create per-centre price list content module (PRICES: Record<CentreKey,
+      Partial<Record<CourseCode, number>>>, PRICE_DISPLAY.unpricedLabelVi, plus the CentreKey
+      type and the bundled centre-claims → CentreKey lookup so pricing resolves offline) with
+      realistic placeholder VND values in src/lib/domain/ielts/pricing.ts
+- [X] T003 [P] Extend brand tokens with mountain palette (atmosphere layers), mascot-as-climber
       asset refs, and the Sansita tagline lockup SVG reference in src/lib/domain/ielts/brand.ts
       (+ asset files under public/brand/)
 
@@ -39,10 +40,13 @@ D-REUSE).
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 Define summit domain types — Placement discriminated union (measured/estimated),
-      SummitRequest, SummitStage (state: below/climb/above; sessions/price nullable),
-      SummitRoadmap (duration ranges, totalPrice with excludesUnpriced), SummitInputError,
-      exhaustive-switch helper — in src/services/ielts/summit-types.ts (per data-model.md)
+- [ ] T004 Define summit domain types — Placement discriminated union (measured with optional
+      testDate / estimated), SummitRequest, SummitStage (state: below/climb/above;
+      sessions/price nullable; composition lines), SummitRoadmap (duration ranges over the
+      provisional 2.4–3.0/wk pace band, totalPrice with excludesUnpriced, internal-only
+      consultantAdvisory + SummitDocumentView Omit type), SummitInputError, exhaustive-switch
+      helper — in src/services/ielts/summit-types.ts; extend src/lib/domain/ielts/courses.ts
+      with per-tier session composition content data (FR-001, clarified 2026-07-17)
 - [ ] T005 [P] Content-module validation test: Zod-parse pricing/copy/brand modules (known
       centre keys, non-empty Vietnamese strings, every climbable course priced or explicitly
       unpriced) in tests/unit/ielts/content-data.test.ts
@@ -68,8 +72,10 @@ change target mid-flow with no data loss (quickstart Scenario 1).
 
 - [ ] T007 [P] [US1] Engine unit tests: exhaustive all-band-pair contiguity property (climb is a
       subarray of RUNGS + optional trailing INT — Principle II / SC-004), INT append iff target
-      ≥ 5.5 ∧ gap ≤ 0.5 (FR-003), degenerate inputs throw SummitInputError with inputs
-      recoverable, "below A1" starts at PRE_S, stage states below/climb/above — in
+      ≥ 5.5 ∧ gap ≤ 0.5 (FR-003), INT-only climb valid when current ≥ 5.5 ∧ target ≤ current +
+      0.5 (e.g. 7.0→7.5), out-of-reach target → highest honest climb + consultantAdvisory
+      (never empty/silent), target ≤ current throws SummitInputError with inputs recoverable,
+      "below A1" starts at PRE_S, stage states below/climb/above — in
       tests/unit/ielts/summit-engine.test.ts
 - [ ] T008 [P] [US1] Pricing unit tests: total = arithmetic sum of climb stage prices for the
       centre's list, unpriced stage → excludesUnpriced flag + excluded from sum, no discount
@@ -83,8 +89,9 @@ change target mid-flow with no data loss (quickstart Scenario 1).
 - [ ] T010 [US1] Implement pure summit engine (generateSummitRoadmap: shared 002 slice logic +
       FR-003 append + stage states + pricing totals + timeline ranges + mode carriage) in
       src/services/ielts/summit-engine.ts — T007–T009 go green
-- [ ] T011 [US1] Opening controls (student name, current band, target band selects from
-      bands.ts options; refuses target ≤ current with Vietnamese prompt, inputs preserved) in
+- [ ] T011 [US1] Opening controls (student name, current band, target band; summit current-band
+      options extend bands.ts with a "below A1" entry for Pre-S entry; refuses target ≤ current
+      with Vietnamese prompt, inputs preserved) in
       src/app/(app)/lo-trinh-ielts/OpeningControls.tsx
 - [ ] T012 [P] [US1] Mountain scene (layered SVG/CSS, bottom-to-top always, illuminate climb /
       dim below / recede-reachable above, student name on the mountain, transform+opacity-only
@@ -92,8 +99,8 @@ change target mid-flow with no data loss (quickstart Scenario 1).
       src/app/(app)/lo-trinh-ielts/Mountain.tsx
 - [ ] T013 [P] [US1] Stage panel (one-at-a-time accordion; tier shapes per FR-009 —
       Booster/Achiever 4 blocks + weighted "Nút thắt thật sự" + 3-row progression table,
-      Foundation strands + goals, Intensive 3 columns; per-stage price with unpriced label) in
-      src/app/(app)/lo-trinh-ielts/StagePanel.tsx
+      Foundation strands + goals, Intensive 3 columns; session composition lines; per-stage
+      price with unpriced label) in src/app/(app)/lo-trinh-ielts/StagePanel.tsx
 - [ ] T014 [P] [US1] Summary surface (total buổi, duration range, projected finish window,
       total price + excludesUnpriced note, Pre-S flexible note) in
       src/app/(app)/lo-trinh-ielts/SummarySurface.tsx
@@ -148,24 +155,27 @@ nothing; reset warns then clears PII (quickstart Scenario 4).
 
 ### Tests for User Story 3 (write first — MUST fail before T025)
 
-- [ ] T022 [P] [US3] Migration for summit_sends (columns per data-model.md, generation_key
-      UNIQUE, no UPDATE/DELETE policies) + private storage bucket roadmap-archive + RLS
-      (centre-confined INSERT, audit-permission SELECT) in
+- [ ] T022 [P] [US3] Migration for summit_sends (columns per data-model.md incl. optional
+      placement_test_date, generation_key UNIQUE, no UPDATE/DELETE policies) + private storage
+      bucket roadmap-archive + RLS (centre-confined INSERT, audit-permission SELECT) in
       supabase/migrations/<timestamp>_summit_sends.sql
 - [ ] T023 [P] [US3] Integration tests against local Supabase (real DB, no mocks — house rule):
       permission gate rejects unauthorized caller, centre A cannot write centre B, same
       generationKey twice → one row/object, provider failure → { error } with no delivered row,
       archived object byte-identical to input PDF — in tests/integration/summit-send.test.ts
 - [ ] T024 [P] [US3] PDF content tests: section order exactly cover → timeline → course cards →
-      Cam kết → Hệ sinh thái → contact (FR-021), content identity with the SummitRoadmap source
-      (SC-003), both thresholds verbatim from thresholds.ts (SC-005), timeline bottom-to-top —
-      in tests/unit/ielts/summit-pdf.test.tsx
+      Cam kết → Hệ sinh thái → contact (FR-021), course cards carry narrative + session
+      composition + price, content identity with the SummitRoadmap source (SC-003), both
+      thresholds verbatim from thresholds.ts (SC-005), timeline bottom-to-top, PDF renderer
+      accepts SummitDocumentView (advisory structurally excluded) — in
+      tests/unit/ielts/summit-pdf.test.tsx
 
 ### Implementation for User Story 3
 
 - [ ] T025 [US3] Evolve the PDF document to the summit shape (spec section order, climb
-      timeline rendered bottom-to-top, per-course narrative + price cards, ecosystem items from
-      ecosystem.ts, contact block) in src/lib/ielts/pdf/RoadmapDocument.tsx — T024 goes green
+      timeline rendered bottom-to-top, per-course cards with narrative + session composition +
+      price, ecosystem items from ecosystem.ts, contact block; input type SummitDocumentView)
+      in src/lib/ielts/pdf/RoadmapDocument.tsx — T024 goes green
 - [ ] T026 [US3] Review screen: preview from the same SummitRoadmap the PDF consumes, inline
       narrative editing, "Ghi chú từ tư vấn viên" above courses, dnd-kit remove/reorder with
       departs-from-standard-ladder warning setting manualEdited — in

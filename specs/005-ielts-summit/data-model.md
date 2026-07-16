@@ -18,8 +18,8 @@ behaviour.
 
 ```ts
 type Placement =
-  | { kind: "measured"; testDate: string }   // Mode A — ISO date of the placement test
-  | { kind: "estimated" };                   // Mode B — provisional, caveat is mandatory
+  | { kind: "measured"; testDate: string | null }  // Mode A — optional ISO test date
+  | { kind: "estimated" };                         // Mode B — provisional, caveat mandatory
 ```
 
 - Carried on the consultation and on every rendered view; renderers switch exhaustively
@@ -50,6 +50,9 @@ interface SummitStage {
   name: string;
   family: CourseFamily;
   sessions: number | null;        // null for PRE_S on the summit path (D-PRES)
+  composition: readonly string[]; // per-tier session composition lines from courses.ts
+                                  // (e.g. "20 buổi chính", "2 buổi ôn tập", "Midterm", "Final")
+                                  // rendered in stage detail + PDF course cards (clarified 2026-07-17)
   narrative: CourseNarrative;
   price: number | null;           // VND from the centre price list; null → "liên hệ tư vấn"
   state: "below" | "climb" | "above";  // recede-dimmed / illuminated / recede-reachable
@@ -70,7 +73,13 @@ interface SummitRoadmap {
   totalPrice: { amount: number; excludesUnpriced: boolean };  // arithmetic sum only
   consultantNotes: string | null;      // "Ghi chú từ tư vấn viên" (student-visible)
   manualEdited: boolean;               // review removals/reorders happened (FR-019 warning shown)
+  /** INTERNAL ONLY — out-of-reach-target advisory; structurally excluded from the document
+   *  view (StudentView Omit pattern, as 002). Clarified 2026-07-17. */
+  consultantAdvisory: string | null;
 }
+
+/** The type the PDF/document renderer accepts — cannot carry the internal advisory. */
+type SummitDocumentView = Omit<SummitRoadmap, "consultantAdvisory">;
 ```
 
 Invariants (engine-enforced, tested):
@@ -142,6 +151,7 @@ type Prices = Record<CentreKey, PriceList>;
 | student_name | text | |
 | student_email | text | |
 | placement_kind | text CHECK IN ('measured','estimated') | Mode A/B |
+| placement_test_date | date NULL | optional Mode A test date (clarified 2026-07-17) |
 | current_band | text | |
 | target_band | text | |
 | course_sequence | text[] | ordered climb codes as sent |

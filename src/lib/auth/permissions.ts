@@ -17,6 +17,15 @@ export const PERMISSION_KEYS = [
   "personalKpi.approveActual",
   "personalKpi.setTarget",
   "departmentKpi.setTarget",
+  // HR Requests (slice #004; data-model §13). own-only keys are app-checked at the service layer.
+  "hrRequest.submit",
+  "hrRequest.decide",
+  "hrRequest.cancel",
+  "cover.respond",
+  "timetable.manage",
+  "hrConfig.manage",
+  "leaveBalance.adjust",
+  "hrReport.view",
   "system.admin",
 ] as const;
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
@@ -37,6 +46,12 @@ const ROLE_GRANTS: Record<AppRole, readonly PermissionKey[]> = {
     "roadmap.generate",
     "personalKpi.approveActual",
     "personalKpi.setTarget",
+    "hrRequest.submit",
+    "hrRequest.decide",
+    "hrRequest.cancel",
+    "cover.respond",
+    "timetable.manage",
+    "hrReport.view",
   ],
   centre_admin: [
     "task.create",
@@ -45,6 +60,10 @@ const ROLE_GRANTS: Record<AppRole, readonly PermissionKey[]> = {
     "roadmap.generate",
     "personalKpi.approveActual",
     "personalKpi.setTarget",
+    "hrRequest.submit",
+    "hrRequest.cancel",
+    "cover.respond",
+    "timetable.manage",
   ],
   sale_consultant: [
     "task.create",
@@ -52,8 +71,11 @@ const ROLE_GRANTS: Record<AppRole, readonly PermissionKey[]> = {
     "task.changeStatus",
     "roadmap.generate",
     "personalKpi.recordActual",
+    "hrRequest.submit",
+    "hrRequest.cancel",
+    "cover.respond",
   ],
-  teacher: ["task.changeStatus"],
+  teacher: ["task.changeStatus", "hrRequest.submit", "hrRequest.cancel", "cover.respond"],
 };
 
 /** True if the role holds `key` (or the `system.admin` catch-all). */

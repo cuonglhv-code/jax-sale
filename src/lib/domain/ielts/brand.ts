@@ -29,5 +29,23 @@ export const BRAND = {
     // Single Jaxtina logo used for ALL brand-image slots (logo + mascot). Drop the PNG here:
     //   public/ielts/jaxtina-logo.png
     logo: "/ielts/jaxtina-logo.png",
+    /** Brand mascot (schoolgirl climber) — used deliberately as the climb marker, never
+     *  decoratively (constitution VIII). Drop the PNG at public/brand/mascot-climber.png. */
+    mascotClimber: "/brand/mascot-climber.png",
+    /** Sansita tagline lockup, pre-rendered SVG (research D-FONT — the tagline is ASCII-only;
+     *  no Vietnamese glyph ever renders in Sansita). Drop at public/brand/tagline-lockup.svg. */
+    taglineLockup: "/brand/tagline-lockup.svg",
+  },
+  /** Summit mountain scene palette (005 T003) — atmosphere layers, bottom (warm base) to top
+   *  (thin summit light). Derived from the navy/red identity; NOT the Olympia palette. */
+  mountain: {
+    skyTop: "#1B2660",
+    skyMid: "#2B3A8C",
+    skyBase: "#46549E",
+    slopeLit: "#F5F6FB",
+    slopeDim: "#B9C0DD",
+    pathLit: "#D01F26",
+    pathDim: "#8A93BC",
+    summitGlow: "#FFD9A0",
   },
 } as const;

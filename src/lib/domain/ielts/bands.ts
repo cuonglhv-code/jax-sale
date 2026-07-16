@@ -54,5 +54,16 @@ export const STANDARD_RATE = 2.7;
 export const INTENSIVE_RATE = 4; // ⚠ research D-INT — confirm with academic team
 export const WEEKS_PER_MONTH = 4.33;
 
+/**
+ * Summit duration pace band (005 FR-004, clarified 2026-07-17): displayed durations span the
+ * 2.4–3.0 effective-sessions/week band around the 2.7 nominal — a range, never false precision.
+ * ⏳ PROVISIONAL — pending academic confirmation; content data, single source.
+ */
+export const SUMMIT_PACE = {
+  minRate: 2.4, // slower pace → maximum duration
+  nominalRate: STANDARD_RATE,
+  maxRate: 3.0, // faster pace → minimum duration
+} as const;
+
 /** Band at/above which the A3 rung is auto-included (policy (i) — ⚠ research D-A3). */
 export const A3_INCLUSION_BAND: Band = "6.5";

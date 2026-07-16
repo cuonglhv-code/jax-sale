@@ -3,7 +3,7 @@ interface FieldProps {
   children: React.ReactNode;
 }
 
-/** Shared label+control wrapper — extracted to remove duplication across the create-task form. */
+/** Shared label+control wrapper — the single source for form field layout across the app. */
 export function Field({ label, children }: FieldProps) {
   return (
     <label className="flex flex-col gap-1 text-sm">

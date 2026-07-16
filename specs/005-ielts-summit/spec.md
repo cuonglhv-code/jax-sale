@@ -12,6 +12,24 @@ parent. It does two jobs in one continuous motion: PRESENT — walk the family u
 current band to target band; SEND — at the summit, produce a branded PDF of that exact roadmap
 and email it to the student. The presentation becomes the document. There is no second tool."
 
+## Clarifications
+
+### Session 2026-07-17
+
+- Q: What happens for students already at/near the ladder top (e.g. 7.0 → 7.5), and for
+  targets beyond A3 + Intensive reach? → A: INT-only climb is valid when current ≥ 5.5 and
+  target ≤ current + 0.5; out-of-reach targets render the highest honest climb plus a
+  consultant-facing advisory — never a silent empty mountain, never an inflated promise.
+- Q: Where does each tier's session composition (e.g. 24 buổi = 20 chính + 2 ôn tập + Midterm
+  + Final) render? → A: In the expanded stage detail on screen AND on each PDF course card —
+  it answers "24 buổi gồm những gì?" in the room and in the document the family keeps.
+- Q: Does Mode A record the placement test date? → A: Optional — Mode A works without a date
+  (three-input opening preserved); when known, the date is recorded and appears in the send
+  archive metadata for audit context.
+- Q: How wide is the displayed duration range? → A: Computed at 2.4–3.0 effective
+  sessions/week (±~10% around the 2.7 nominal); the rate constants live in content data
+  marked provisional pending academic confirmation.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Present the Climb (Priority: P1)
@@ -114,7 +132,8 @@ simulated delivery failure is loud and loses nothing, and that reset produces a 
    introduces a silently skipped level into an unedited roadmap.
 3. **Given** capture is complete, **When** the PDF is produced, **Then** it contains, in order:
    cover (student name, current → target band, total duration, provisional caveat if Mode B);
-   timeline of the climb; course-by-course cards with narrative and price; Cam kết đầu ra & điều
+   timeline of the climb; course-by-course cards with narrative, session composition, and
+   price; Cam kết đầu ra & điều
    kiện; Hệ sinh thái hỗ trợ; contact block — and its content is identical to the reviewed
    presentation.
 4. **Given** the PDF is ready and the network is down, **When** the consultant attempts to send,
@@ -186,8 +205,10 @@ the prior presentation state in one action.
 - Entry below A1: Pre-S renders as the base of the mountain and joins the climb; it is the only
   stage without a fixed buổi count, so summary math must handle it explicitly.
 - Target ≥ 5.5 with the gap to the final course's output ≤ 0.5: Luyện đề Intensive is appended
-  exactly once; a climb consisting of only Luyện đề Intensive (e.g. 5.5+ start) must render
-  sensibly.
+  exactly once; an INT-only climb (current ≥ 5.5, target ≤ current + 0.5, e.g. 7.0 → 7.5)
+  renders as a valid one-stage climb.
+- Target beyond A3 + Intensive reach (e.g. 8.0+): highest honest climb renders with a
+  consultant-facing advisory; the mountain never appears empty and never claims the target.
 - Delivery failure mid-appointment: the failure is loud, the work is preserved, retry needs no
   re-entry (Constitution Principle V).
 - Full offline appointment: everything except the send step works; the prepared document
@@ -218,10 +239,16 @@ the prior presentation state in one action.
   incapable of producing a roadmap with a skipped level, and this MUST be covered by automated
   tests.
 - **FR-003**: Generation MUST auto-append Luyện đề Intensive when target ≥ 5.5 and (target −
-  final course output band) ≤ 0.5.
+  final course output band) ≤ 0.5. When no rung applies but current ≥ 5.5 and target ≤ current
+  + 0.5, the climb is Luyện đề Intensive alone — a valid one-stage climb, never an error. When
+  the target exceeds what A3 + Intensive can honestly reach, the system renders the highest
+  honest climb and a consultant-facing advisory recommending direct consultation; it MUST NOT
+  render an empty mountain or imply the out-of-reach target is covered.
 - **FR-004**: The timeline MUST be computed as: 2 hours per session, 3 sessions per week, ~2.7
   effective sessions per week (holidays and make-ups); weeks = sessions ÷ 2.7; months = weeks ÷
-  4.33 — and MUST always be presented as a range, never false precision.
+  4.33 — and MUST always be presented as a range, never false precision. The displayed range
+  spans the 2.4–3.0 effective-sessions/week pace band; these rate constants are content data
+  marked provisional pending academic confirmation.
 
 **Presentation**
 
@@ -239,7 +266,8 @@ the prior presentation state in one action.
   Speaking; each row carrying "Progression cốt lõi" and "Cách hiểu đơn giản"), "Sau khóa học,
   học viên thay đổi như thế nào?"; Foundation 1–2: "Bạn sẽ học gì?" (Nghe & Đọc / Viết & Nói /
   Từ vựng / Ngữ pháp) and "Mục tiêu khóa học"; Luyện đề Intensive: "Đối tượng", "Mục tiêu khóa
-  học", and three columns NÓI / VIẾT / CHIẾN LƯỢC THI.
+  học", and three columns NÓI / VIẾT / CHIẾN LƯỢC THI. Every expanded stage also shows its
+  session composition from the canonical ladder data (FR-001).
 - **FR-010**: Every presentation state MUST be reachable in one action from every other state —
   no wizards, no forced linearity; changing the target mid-conversation MUST re-render
   immediately.
@@ -250,7 +278,8 @@ the prior presentation state in one action.
 
 - **FR-012**: Every consultation MUST be in exactly one of two modes: Mode A (measured placement
   result) or Mode B (estimated start). The mode MUST be part of the roadmap's data, not merely
-  its styling.
+  its styling. Mode A MAY carry an optional placement-test date; when present it is recorded in
+  the send archive metadata. The date is never required to present.
 - **FR-013**: In Mode B, the starting marker MUST carry a distinct, unmissable provisional
   treatment; the copy "Lộ trình dự kiến — cần xác nhận bằng kết quả test đầu vào" MUST be
   visible; duration and price MUST be framed as estimates; and a call to action to book the
@@ -284,11 +313,13 @@ the prior presentation state in one action.
   narrative block MUST be editable inline; a free-text "Ghi chú từ tư vấn viên" MUST sit above
   the courses; courses MAY be removed or reordered only with a warning that the result departs
   from the standard ladder.
-- **FR-020**: Capture MUST collect student name, email, phone; consultant name, phone, email;
-  and centre.
+- **FR-020**: Capture MUST collect student name, email, phone; consultant name, phone, email.
+  The centre is recorded from the consultant's verified session — never entered or editable at
+  capture time.
 - **FR-021**: The PDF MUST contain, in order: (1) cover — student name, current → target band,
   total duration, provisional caveat if Mode B; (2) timeline — the climb, rendered; (3)
-  course-by-course cards — narrative and price; (4) Cam kết đầu ra & điều kiện; (5) Hệ sinh
+  course-by-course cards — narrative, session composition, and price; (4) Cam kết đầu ra &
+  điều kiện; (5) Hệ sinh
   thái hỗ trợ — LMS Tracking, AI Speaking Coach (mô hình PRE(F)C), Thư viện số & E-book độc
   quyền, Hệ thống bài kiểm tra định kì, CLB Speaking miễn phí; (6) contact — consultant
   name/phone/email, centre, company footer.
@@ -407,6 +438,9 @@ the prior presentation state in one action.
 - **Laptop-only, consultant-only** (Constitution Scope Boundary): no student self-service, no
   parent portal, no phone experience; design decisions never compromise the across-the-desk
   case.
+- **The send-archive review surface is internal operations tooling** (academic team), not a
+  presentation surface; it sits outside the sole-user clause without compromising the primary
+  across-the-desk case. All presentation surfaces remain consultant-only.
 - **One consultation at a time per machine**: the tool models a single active consultation;
   the send archive (FR-025) is the system of record — there is no local consultation history
   or multi-session management beyond reset.

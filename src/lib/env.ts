@@ -17,6 +17,10 @@ const publicSchema = z.object({
 
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  // HR module (slice 004): transactional email (Resend) + Vercel Cron auth. Server-only secrets —
+  // no NEXT_PUBLIC_ prefix, never reach the client.
+  RESEND_API_KEY: z.string().min(1),
+  CRON_SECRET: z.string().min(1),
 });
 
 export const publicEnv = publicSchema.parse({
@@ -31,5 +35,7 @@ export const publicEnv = publicSchema.parse({
 export function getServerEnv() {
   return serverSchema.parse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    CRON_SECRET: process.env.CRON_SECRET,
   });
 }

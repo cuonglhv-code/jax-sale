@@ -26,10 +26,10 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Add dependencies (`resend`, `@react-email/components`, `papaparse` + `@types/papaparse`) to `package.json` and install
-- [ ] T002 [P] Add `RESEND_API_KEY` and `CRON_SECRET` to startup env validation in `src/lib/env.ts` (fail-fast)
-- [ ] T003 [P] Declare the private `medical-documents` bucket (size/MIME limits) in `supabase/config.toml`; note the full `supabase stop && start` + `db reset` reload gotcha in a comment
-- [ ] T004 [P] Extract shared form field components (`Field`, `SelectField`, `DateField`, `FileField`) from `src/app/(app)/tasks/*` into `src/components/form/`
+- [X] T001 Add dependencies (`resend`, `@react-email/components`, `papaparse` + `@types/papaparse`) to `package.json` and install
+- [X] T002 [P] Add `RESEND_API_KEY` and `CRON_SECRET` to startup env validation in `src/lib/env.ts` (fail-fast)
+- [X] T003 [P] Declare the private `medical-documents` bucket (size/MIME limits) in `supabase/config.toml`; note the full `supabase stop && start` + `db reset` reload gotcha in a comment
+- [X] T004 [P] Extract shared form field components (`Field`, `SelectField`, `DateField`, `FileField`) from `src/app/(app)/tasks/*` into `src/components/form/`
 
 ---
 
@@ -37,16 +37,21 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 **⚠️ CRITICAL**: No user-story work begins until this phase is complete.
 
-- [ ] T005 Migration `supabase/migrations/20260716130001_employees_hr_cols.sql` — add `hire_date`, `employment_type` (CHECK ∈ EmploymentType), `contract_type` (CHECK ∈ ContractType) to `public.employees`; backfill defaults
-- [ ] T006 Migration `supabase/migrations/20260716130002_hr_schema.sql` — create `hr_request`, `hr_request_status_history`, `cover_assignment`, `request_attachment`, `leave_balance`, `leave_policy_config`, `leave_event_allowance`, `public_holiday`, `doc_type_policy`, `class` (columns + CHECK enums + indexes per [data-model.md](./data-model.md))
-- [ ] T007 [P] Add HR enums (`RequestType`, `RequestStatus`, `LeaveDayPart`, `CoverStatus`, `EmploymentType`, `ContractType`, `PersonalLeaveEvent`) as `as const` tuples + camelCase entity interfaces to `src/lib/data/types.ts`
-- [ ] T008 [P] Add HR `<ENUM>_LABEL` Vietnamese maps + `/nhan-su` sub-route `NAV_ITEMS` entries (role-scoped) to `src/lib/domain/vocabulary.ts`
-- [ ] T009 [P] Append HR permission keys (`hrRequest.submit|decide|cancel`, `cover.respond`, `timetable.manage`, `hrConfig.manage`, `leaveBalance.adjust`, `hrReport.view`) + `ROLE_GRANTS` to `src/lib/auth/permissions.ts`
-- [ ] T010 Migration `supabase/migrations/20260716130003_hr_rls.sql` — RLS for every HR table per [contracts/rls-policies.md](./contracts/rls-policies.md) (restricted-read on `hr_request`/`leave_balance`; centre-narrow write; Pattern B for config; Pattern A for `class`)
-- [ ] T011 [P] Pure working-days utility in `src/lib/hr/working-days.ts` (count vs configurable working-week, exclude holidays, half-day = 0.5)
-- [ ] T012 [P] `FormDefinition` registry types + empty registry in `src/lib/domain/hr-forms.ts`
-- [ ] T013 Extend `supabase/seed.sql` (idempotent) — classes per centre, `leave_policy_config` for current year, holidays, employee `hire_date`/`employment_type`, a few sample requests; RFC-4122-shaped UUIDs
-- [ ] T014 HR live-local test harness + **storage fixture setup/teardown** (`tests/integration/hr/_setup.ts`) — seed.sql seeds Postgres only, so storage objects need explicit fixtures (research R8)
+> **Implementation note (timestamps):** `20260716130001` was already taken by slice-003
+> (`roadmap_records`), so the HR migrations were created as `20260717130001_employees_hr_cols.sql`
+> (T005), `20260717130002_hr_schema.sql` (T006), and `20260717130003_hr_rls.sql` (T010) to avoid
+> collision. Filenames below are the originally-planned names.
+
+- [X] T005 Migration `supabase/migrations/20260716130001_employees_hr_cols.sql` — add `hire_date`, `employment_type` (CHECK ∈ EmploymentType), `contract_type` (CHECK ∈ ContractType) to `public.employees`; backfill defaults
+- [X] T006 Migration `supabase/migrations/20260716130002_hr_schema.sql` — create `hr_request`, `hr_request_status_history`, `cover_assignment`, `request_attachment`, `leave_balance`, `leave_policy_config`, `leave_event_allowance`, `public_holiday`, `doc_type_policy`, `class` (columns + CHECK enums + indexes per [data-model.md](./data-model.md))
+- [X] T007 [P] Add HR enums (`RequestType`, `RequestStatus`, `LeaveDayPart`, `CoverStatus`, `EmploymentType`, `ContractType`, `PersonalLeaveEvent`) as `as const` tuples + camelCase entity interfaces to `src/lib/data/types.ts`
+- [X] T008 [P] Add HR `<ENUM>_LABEL` Vietnamese maps + `/nhan-su` sub-route `NAV_ITEMS` entries (role-scoped) to `src/lib/domain/vocabulary.ts`
+- [X] T009 [P] Append HR permission keys (`hrRequest.submit|decide|cancel`, `cover.respond`, `timetable.manage`, `hrConfig.manage`, `leaveBalance.adjust`, `hrReport.view`) + `ROLE_GRANTS` to `src/lib/auth/permissions.ts`
+- [X] T010 Migration `supabase/migrations/20260716130003_hr_rls.sql` — RLS for every HR table per [contracts/rls-policies.md](./contracts/rls-policies.md) (restricted-read on `hr_request`/`leave_balance`; centre-narrow write; Pattern B for config; Pattern A for `class`)
+- [X] T011 [P] Pure working-days utility in `src/lib/hr/working-days.ts` (count vs configurable working-week, exclude holidays, half-day = 0.5)
+- [X] T012 [P] `FormDefinition` registry types + empty registry in `src/lib/domain/hr-forms.ts`
+- [X] T013 Extend `supabase/seed.sql` (idempotent) — classes per centre, `leave_policy_config` for current year, holidays, employee `hire_date`/`employment_type`, a few sample requests; RFC-4122-shaped UUIDs
+- [X] T014 HR live-local test harness + **storage fixture setup/teardown** (`tests/integration/hr/_setup.ts`) — seed.sql seeds Postgres only, so storage objects need explicit fixtures (research R8)
 
 **Checkpoint**: Foundation ready — schema, enums, vocabulary, permissions, RLS, engine scaffold in place.
 

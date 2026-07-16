@@ -5,8 +5,7 @@ import { useCreateTask } from "@/hooks/mutations/useCreateTask";
 import { listAssignableEmployees, type AssignableEmployee } from "@/app/actions/tasks/list-assignable-employees";
 import { TASK_GROUPS, PRIORITIES } from "@/lib/data/types";
 import { TASK_GROUP_LABEL, PRIORITY_LABEL } from "@/lib/domain/vocabulary";
-import { Field } from "./Field";
-import { SelectField } from "./SelectField";
+import { Field, SelectField } from "@/components/form";
 
 interface DepartmentOption {
   id: string;

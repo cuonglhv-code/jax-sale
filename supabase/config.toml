@@ -124,6 +124,17 @@ file_size_limit = "50MiB"
 # allowed_mime_types = ["image/png", "image/jpeg"]
 # objects_path = "./images"
 
+# HR module (slice 004) — private bucket for medical documents (sick/personal-leave attachments).
+# Confidentiality is enforced at the storage/DB layer (storage RLS lands in US6, not here).
+# GOTCHA: the local stack does NOT hot-reload bucket config. After changing this block you must run
+# a full `supabase stop && supabase start`, then `supabase db reset` — a plain `db reset` alone will
+# NOT create/update the bucket. (Byte-level size/MIME are also re-checked in-app since bucket checks
+# validate only the declared Content-Type.)
+[storage.buckets.medical-documents]
+public = false
+file_size_limit = "10MiB"
+allowed_mime_types = ["application/pdf", "image/png", "image/jpeg"]
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true

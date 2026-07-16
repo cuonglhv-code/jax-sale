@@ -58,9 +58,12 @@ function startRungIndex(req: RoadmapRequest): number {
   return RUNGS.findIndex((c) => c.outputBand !== null && bandValue(c.outputBand) > cv);
 }
 
-/** Contiguous slice of rungs from start through the first rung whose output meets the target. */
-function sliceRungs(req: RoadmapRequest, startIdx: number): Course[] {
-  const tv = bandValue(req.targetBand);
+/**
+ * THE shared no-skip slice (Constitution II — single source; 005 reuses it via summit-engine).
+ * Contiguous rungs from `startIdx` through the first rung whose output meets the target.
+ */
+export function sliceContiguousRungs(startIdx: number, targetBand: Band): Course[] {
+  const tv = bandValue(targetBand);
   const seq: Course[] = [];
   if (startIdx < 0) return seq; // current at/above ladder top → no rung applies
   for (let i = startIdx; i < RUNGS.length; i++) {
@@ -69,6 +72,16 @@ function sliceRungs(req: RoadmapRequest, startIdx: number): Course[] {
     if (out !== null && bandValue(out) >= tv) break;
   }
   return seq;
+}
+
+/** First rung whose output exceeds the current band (shared with the summit path). */
+export function firstUsefulRungIndex(currentBand: Band): number {
+  const cv = bandValue(currentBand);
+  return RUNGS.findIndex((c) => c.outputBand !== null && bandValue(c.outputBand) > cv);
+}
+
+function sliceRungs(req: RoadmapRequest, startIdx: number): Course[] {
+  return sliceContiguousRungs(startIdx, req.targetBand);
 }
 
 export function generateRoadmap(req: RoadmapRequest): Roadmap {
