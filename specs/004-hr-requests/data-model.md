@@ -272,7 +272,7 @@ tenth form = adding one `FormDefinition`, no new pipeline (FR-002). Per-type fie
 | Type | Promoted cols | Payload | Doc | Conflict | Side effect |
 |---|---|---|---|---|---|
 | annual_leave | start/end/day_part/working_days | — | no | yes | draw balance (warn if over, FR-012) |
-| sick_leave | start/end/day_part | — | **required** (medical) | yes | none |
+| sick_leave | start/end/day_part | `reason` | no | yes | none |
 | personal_leave | start/end/day_part | `event`, `reason` | by event | yes | none |
 | unpaid_leave | start/end/day_part | `reason` | no | yes | none |
 | shift_swap | — | `note` | no | yes (standalone) | none |

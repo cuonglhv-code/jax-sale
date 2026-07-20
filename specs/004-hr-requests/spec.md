@@ -410,8 +410,10 @@ and who is covering" view and a leave-by-employee report, and export them.
 
 ### Documentation & sensitive-data protection
 
-- **FR-031**: The system MUST support a documentation attachment on sick leave and on personal-leave
-  categories that require it, restricting accepted file types and enforcing a size limit.
+- **FR-031**: The system MUST support a documentation attachment on personal-leave categories that
+  require it, restricting accepted file types and enforcing a size limit. Sick leave requires a
+  free-text reason instead of a document attachment (superseded from the original "sick leave
+  requires documentation" requirement — a typed explanation is the simplification adopted here).
 - **FR-032**: Medical documentation MUST be access-controlled at the data layer — visible only to the
   request's approver and to HR (`super_admin` in v1), never to peers.
 - **FR-033**: Medical documentation and attachment contents MUST NEVER appear in any list view,
