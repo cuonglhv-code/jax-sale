@@ -39,16 +39,22 @@ create policy "pkpi_insert_own" on public.personal_kpis for insert to authentica
 
 create policy "pkpi_update_scoped" on public.personal_kpis for update to authenticated
   using (
-    centre_id::text = (select auth.jwt() ->> 'centre_id')
-    and (
-      (select auth.jwt() ->> 'app_role') in ('centre_manager', 'centre_admin', 'super_admin')
-      or (
-        (select auth.jwt() ->> 'app_role') = 'sale_consultant'
-        and consultant_id::text = (select auth.jwt() ->> 'employee_id')
+    (select auth.jwt() ->> 'app_role') = 'super_admin'
+    or (
+      centre_id::text = (select auth.jwt() ->> 'centre_id')
+      and (
+        (select auth.jwt() ->> 'app_role') in ('centre_manager', 'centre_admin')
+        or (
+          (select auth.jwt() ->> 'app_role') = 'sale_consultant'
+          and consultant_id::text = (select auth.jwt() ->> 'employee_id')
+        )
       )
     )
   )
-  with check (centre_id::text = (select auth.jwt() ->> 'centre_id'));
+  with check (
+    (select auth.jwt() ->> 'app_role') = 'super_admin'
+    or centre_id::text = (select auth.jwt() ->> 'centre_id')
+  );
 -- No DELETE policy: KPI rows are not deleted in this slice.
 
 -- ── department_kpi_targets — Pattern B: management read, super_admin write ──
@@ -70,4 +76,7 @@ create policy "pkpi_logs_select_tiered" on public.personal_kpi_status_logs for s
     )
   );
 create policy "pkpi_logs_insert_own_centre" on public.personal_kpi_status_logs for insert to authenticated
-  with check (centre_id::text = (select auth.jwt() ->> 'centre_id'));
+  with check (
+    (select auth.jwt() ->> 'app_role') = 'super_admin'
+    or centre_id::text = (select auth.jwt() ->> 'centre_id')
+  );
