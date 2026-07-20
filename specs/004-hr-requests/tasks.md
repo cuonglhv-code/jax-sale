@@ -181,15 +181,15 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 ### Tests (write first, must fail)
 
-- [ ] T050 [P] [US6] **Confidentiality proof**: peer denied metadata + object; centre manager can sign; centre-B manager cannot; absent from all projections, in `tests/integration/hr/us6-confidentiality.test.ts`
-- [ ] T051 [P] [US6] Integration: sick leave requires an attachment; type/size enforced (byte-level), in `tests/integration/hr/us6-upload.test.ts`
+- [X] T050 [P] [US6] **Confidentiality proof**: peer denied metadata + object; centre manager can sign; centre-B manager cannot; absent from all projections, in `tests/integration/hr/us6-confidentiality.test.ts`
+- [X] T051 [P] [US6] Integration: sick leave requires an attachment; type/size enforced (byte-level), in `tests/integration/hr/us6-upload.test.ts`
 
 ### Implementation
 
-- [ ] T052 [US6] Migration `supabase/migrations/20260716130007_hr_storage.sql` — `storage.objects` RLS for `medical-documents` per [contracts/storage-policies.md](./contracts/storage-policies.md) + `request_attachment` RLS
-- [ ] T053 [US6] `attachment.ts` action + `attachment.service.ts` — upload via service-role (byte-MIME sniff + size) and signed-URL view **after** app-layer gate
-- [ ] T054 [US6] Enforce `doc_type_policy`; set `purge_after` from config; expose only `hasAttachment` in list/report/email projections
-- [ ] T055 [US6] File-upload UI in sick/personal forms + approver signed-URL viewer (never in the queue list body)
+- [X] T052 [US6] Migration `supabase/migrations/20260720130006_hr_storage.sql` — `storage.objects` RLS for `medical-documents` per [contracts/storage-policies.md](./contracts/storage-policies.md). `request_attachment` RLS already existed from the foundation `hr_rls` migration (20260717130003) — confirmed, nothing duplicated. Named with the next available `20260720…` HR-slice timestamp (not `20260716130007` as originally drafted) to sort after the latest existing migration.
+- [X] T053 [US6] `upload-attachment.ts` + `get-attachment-url.ts` actions + `attachment.service.ts` — upload via service-role (byte-MIME sniff + size, no new dependency) and signed-URL view **after** an app-layer gate that reads through the service-role client (see task report — RLS would otherwise mask an ineligible caller's request as a false "not found" instead of the required `ForbiddenError`)
+- [X] T054 [US6] Enforce `doc_type_policy` (byte-level sniff + size vs. the already-seeded policy rows); expose only `hasAttachment` in `listMyRequestsCore`/`listApprovalQueueCore` projections (`purge_after`/cron auto-purge is T063, Polish phase — not part of this story's scope)
+- [X] T055 [US6] File-upload UI in `LeaveFamilyForm.tsx` (sick/personal forms) + approver signed-URL viewer in `ApprovalQueueBoard.tsx` (indicator + on-demand button only, never in the row body)
 
 **Checkpoint**: Medical-doc confidentiality proven at the storage layer (SC-006).
 

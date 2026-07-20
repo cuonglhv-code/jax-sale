@@ -168,21 +168,26 @@ export async function uploadAttachmentCore(
  * uploader themself.
  */
 export async function getAttachmentSignedUrlCore(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   serviceClient: SupabaseClient,
   claims: Claims,
   requestId: string,
 ): Promise<string> {
-  const { data: attachment, error: attachmentError } = await supabase
+  // Both reads go through the SERVICE-ROLE client (bypassing RLS) deliberately: the eligibility
+  // check just below is the ACTUAL authorization boundary for this flow (mirroring the signed-URL
+  // mint itself, which is also service-role and bypasses RLS) — reading the attachment/request
+  // through the caller's own RLS-scoped client would let RLS's restricted-read policy hide the row
+  // from an ineligible caller as a false "not found", which both leaks nothing extra AND is the
+  // wrong error class for the proof (it must be an explicit ForbiddenError, not a generic
+  // not-found, so a peer's rejection is unambiguously "you may not view this", not "this doesn't
+  // exist" — see storage-policies.md's ordering requirement: app-layer check first, always).
+  const { data: attachment, error: attachmentError } = await serviceClient
     .from("request_attachment")
     .select("storage_path, uploaded_by, request_id")
     .eq("request_id", requestId)
     .maybeSingle();
   if (attachmentError) throw attachmentError;
 
-  // Resolve the owning request's centre via the SERVICE-ROLE client (not the caller's RLS-scoped
-  // client) — a peer must be told "not eligible", not silently given a false-negative "not found"
-  // that would otherwise leak which requests carry an attachment via response-shape differences.
   const { data: request, error: requestError } = await serviceClient
     .from("hr_request")
     .select("centre_id")

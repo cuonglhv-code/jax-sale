@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useApprovalQueue } from "@/hooks/queries/hr/useApprovalQueue";
 import { useDecideRequest } from "@/hooks/mutations/hr/useDecideRequest";
+import { useAttachmentUrl } from "@/hooks/mutations/hr/useAttachmentUrl";
 import { REQUEST_TYPE_LABEL, REQUEST_STATUS_LABEL, LEAVE_DAY_PART_LABEL } from "@/lib/domain/vocabulary";
 import type { HrRequest } from "@/lib/data/types";
 
@@ -15,8 +16,20 @@ import type { HrRequest } from "@/lib/data/types";
 export function ApprovalQueueBoard() {
   const { data, isLoading, error } = useApprovalQueue();
   const decide = useDecideRequest();
+  const attachmentUrl = useAttachmentUrl();
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+
+  // US6 (T055): mint a signed URL and open it in a new tab — the server action re-checks
+  // eligibility (approver-of-centre or super_admin, both of which this page is already gated to),
+  // so this button is not itself the security boundary, only a convenience affordance.
+  function viewAttachment(requestId: string) {
+    attachmentUrl.mutate(requestId, {
+      onSuccess: (url) => {
+        window.open(url, "_blank", "noopener,noreferrer");
+      },
+    });
+  }
 
   function startReject(requestId: string) {
     setRejectingId(requestId);
@@ -58,11 +71,13 @@ export function ApprovalQueueBoard() {
           isRejecting={rejectingId === request.id}
           reason={reason}
           isPending={decide.isPending}
+          isLoadingAttachment={attachmentUrl.isPending}
           onApprove={() => approve(request.id)}
           onStartReject={() => startReject(request.id)}
           onCancelReject={cancelReject}
           onReasonChange={setReason}
           onSubmitReject={() => submitReject(request.id)}
+          onViewAttachment={() => viewAttachment(request.id)}
         />
       ))}
     </div>
@@ -74,11 +89,13 @@ interface ApprovalRowProps {
   isRejecting: boolean;
   reason: string;
   isPending: boolean;
+  isLoadingAttachment: boolean;
   onApprove: () => void;
   onStartReject: () => void;
   onCancelReject: () => void;
   onReasonChange: (value: string) => void;
   onSubmitReject: () => void;
+  onViewAttachment: () => void;
 }
 
 function ApprovalRow({
@@ -86,11 +103,13 @@ function ApprovalRow({
   isRejecting,
   reason,
   isPending,
+  isLoadingAttachment,
   onApprove,
   onStartReject,
   onCancelReject,
   onReasonChange,
   onSubmitReject,
+  onViewAttachment,
 }: ApprovalRowProps) {
   return (
     <div className="flex flex-col gap-2 rounded border p-3 text-sm">
@@ -108,6 +127,22 @@ function ApprovalRow({
         )}
         {request.workingDays !== null && <span>{` · ${request.workingDays} ngày công`}</span>}
       </div>
+
+      {/* US6 (T055): never in the row body itself — a small indicator + an on-demand signed-URL
+          button only, never the document content or storage path (data-model §7). */}
+      {request.hasAttachment && (
+        <div className="flex items-center gap-2 text-gray-600">
+          <span>📎 Có tài liệu đính kèm</span>
+          <button
+            type="button"
+            className="rounded border px-2 py-0.5 text-blue-700 disabled:opacity-50"
+            disabled={isLoadingAttachment}
+            onClick={onViewAttachment}
+          >
+            {isLoadingAttachment ? "Đang tải..." : "Xem tài liệu"}
+          </button>
+        </div>
+      )}
 
       {!isRejecting && (
         <div className="flex gap-2">

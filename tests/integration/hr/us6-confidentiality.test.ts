@@ -3,7 +3,7 @@ import { uploadAttachmentCore, getAttachmentSignedUrlCore } from "@/services/att
 import { listMyRequestsCore, listApprovalQueueCore } from "@/services/hr-request.service";
 import { assertPermission, assertAuthenticated } from "@/lib/auth/assert-permission";
 import { ForbiddenError } from "@/lib/server-action";
-import { serviceRoleClient, resolveEmployeeId, SEEDED_USERS } from "../../helpers/auth";
+import { serviceRoleClient } from "../../helpers/auth";
 import { HR_SEED, hrClientFor, samplePdfBytes, teardownMedicalFixture } from "./_setup";
 
 /**
@@ -90,12 +90,11 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
 
   it("(a) a same-centre PEER's app-layer view request is also denied (defense in depth)", async () => {
     const teacherClient = await hrClientFor("teacherQ1");
-    const teacherId = await resolveEmployeeId(teacherClient, SEEDED_USERS.teacherQ1);
     const claims = await assertAuthenticated(teacherClient);
     const svc = serviceRoleClient();
 
     await expect(
-      getAttachmentSignedUrlCore(teacherClient, svc, { ...claims, employeeId: teacherId }, HR_SEED.requestSickLeave),
+      getAttachmentSignedUrlCore(teacherClient, svc, claims, HR_SEED.requestSickLeave),
     ).rejects.toThrow(ForbiddenError);
   });
 

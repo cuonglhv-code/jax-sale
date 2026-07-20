@@ -135,13 +135,35 @@ describe("hr US6: attachment upload validation (T051)", () => {
     ).rejects.toThrow(DomainError);
   });
 
-  it("rejects attaching to a request that is NOT the caller's own (app-layer gate)", async () => {
-    // sale.q1's seeded sick_leave request (HR_SEED.requestSickLeave) — teacher.q1 must not attach to it.
+  it("rejects attaching to a request that is NOT the caller's own", async () => {
+    // sale.q1's seeded sick_leave request (HR_SEED.requestSickLeave), centre Q1 — teacher.q1 (same
+    // centre, different submitter) must not attach to it. RLS's own restricted-read policy
+    // (hr_request_select_scoped) already hides the row from a non-submitter/non-approver peer, so
+    // `getVisibleRequest` sees nothing and the service raises a not-found DomainError rather than
+    // reaching the "is this your own request" branch — belt-and-suspenders: the row is invisible
+    // AND, even if it were visible, uploadAttachmentCore's own submitter_id check would still
+    // reject it (ForbiddenError) for anyone who isn't the submitter.
     const teacherClient = await hrClientFor("teacherQ1");
     const claims = await assertPermission(teacherClient, "hrRequest.submit");
 
     await expect(
       uploadAttachmentCore(teacherClient, svc, claims, {
+        requestId: HR_SEED.requestSickLeave,
+        fileName: "medical.pdf",
+        declaredContentType: "application/pdf",
+        bytes: samplePdfBytes(),
+      }),
+    ).rejects.toThrow(DomainError);
+  });
+
+  it("rejects a non-submitter who CAN see the row (centre_manager, approver) from uploading to it", async () => {
+    // manager.q1 CAN see sale.q1's request via RLS (centre_manager read scope), so this exercises
+    // the ForbiddenError branch specifically (getVisibleRequest succeeds; submitter_id check fails).
+    const managerClient = await hrClientFor("managerQ1");
+    const claims = await assertPermission(managerClient, "hrRequest.submit");
+
+    await expect(
+      uploadAttachmentCore(managerClient, svc, claims, {
         requestId: HR_SEED.requestSickLeave,
         fileName: "medical.pdf",
         declaredContentType: "application/pdf",

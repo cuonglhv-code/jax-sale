@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useSubmitRequest } from "@/hooks/mutations/hr/useSubmitRequest";
+import { useUploadAttachment } from "@/hooks/mutations/hr/useUploadAttachment";
 import { useClasses } from "@/hooks/queries/hr/useClasses";
 import { listTeachers, type AssignableTeacher } from "@/app/actions/hr/list-teachers";
 import { LEAVE_DAY_PARTS, PERSONAL_LEAVE_EVENTS, type LeaveDayPart, type PersonalLeaveEvent } from "@/lib/data/types";
 import { LEAVE_DAY_PART_LABEL, PERSONAL_LEAVE_EVENT_LABEL } from "@/lib/domain/vocabulary";
-import { DateField, SelectField, Field } from "@/components/form";
+import { DateField, SelectField, Field, FileField } from "@/components/form";
 
 interface LeaveFamilyFormProps {
   requestType: "sick_leave" | "personal_leave" | "unpaid_leave";
@@ -28,10 +29,20 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
   const [coverClassId, setCoverClassId] = useState("");
   const [coverSessionDate, setCoverSessionDate] = useState("");
   const [coverNomineeId, setCoverNomineeId] = useState("");
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const submitRequest = useSubmitRequest();
+  const uploadAttachment = useUploadAttachment();
   const { data: classes } = useClasses();
   const [teachers, setTeachers] = useState<AssignableTeacher[]>([]);
+
+  // US6 (T054): sick_leave always requires documentation (FormDefinition.requiresDocument = true);
+  // personal_leave requires it for the three statutory events, not for `other` (FormDefinition's
+  // own event-conditioned predicate — this UI mirrors it as a nudge, not a hard submit-time block,
+  // per the chicken/egg note in hr-forms.ts/attachment.service.ts: the request row must exist
+  // before a document can be attached to it, so the file is uploaded as a FOLLOW-UP call after
+  // submission succeeds, never blocking the submit itself).
+  const showsDocumentField = requestType === "sick_leave" || (requestType === "personal_leave" && event !== "other");
 
   useEffect(() => {
     listTeachers().then((result) => {
@@ -49,12 +60,30 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
           : undefined;
 
       const base = { startDate, endDate, dayPart, covers };
+      let created;
       if (requestType === "personal_leave") {
-        await submitRequest.mutateAsync({ requestType, ...base, event, reason: reason || undefined });
+        created = await submitRequest.mutateAsync({ requestType, ...base, event, reason: reason || undefined });
       } else if (requestType === "unpaid_leave") {
-        await submitRequest.mutateAsync({ requestType, ...base, reason: reason || undefined });
+        created = await submitRequest.mutateAsync({ requestType, ...base, reason: reason || undefined });
       } else {
-        await submitRequest.mutateAsync({ requestType, ...base });
+        created = await submitRequest.mutateAsync({ requestType, ...base });
+      }
+
+      // US6 (T055): the request row must exist before a document can be attached to it (the
+      // attachment's request_id foreign key) — upload as a FOLLOW-UP call using the new request's
+      // id. A failed upload does not roll back the submit; the user sees the error and can retry
+      // the upload separately (the request itself is already safely created).
+      if (documentFile) {
+        try {
+          await uploadAttachment.mutateAsync({ requestId: created.id, file: documentFile });
+        } catch (uploadErr) {
+          setError(
+            `Yêu cầu đã được gửi, nhưng tải tài liệu đính kèm thất bại: ${
+              uploadErr instanceof Error ? uploadErr.message : "Đã xảy ra lỗi."
+            }`,
+          );
+          return;
+        }
       }
 
       setStartDate("");
@@ -65,6 +94,7 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
       setCoverClassId("");
       setCoverSessionDate("");
       setCoverNomineeId("");
+      setDocumentFile(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Đã xảy ra lỗi.");
     }
@@ -96,6 +126,14 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
         </Field>
       )}
 
+      {showsDocumentField && (
+        <FileField
+          label="Tài liệu đính kèm (PDF, PNG hoặc JPEG)"
+          accept="application/pdf,image/png,image/jpeg"
+          onChange={setDocumentFile}
+        />
+      )}
+
       <p className="w-full text-sm text-gray-600">
         Nếu ngày nghỉ trùng buổi dạy của bạn, hãy đề cử giáo viên dạy thay bên dưới:
       </p>
@@ -115,10 +153,10 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
 
       <button
         type="submit"
-        disabled={submitRequest.isPending}
+        disabled={submitRequest.isPending || uploadAttachment.isPending}
         className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
       >
-        {submitRequest.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
+        {submitRequest.isPending || uploadAttachment.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
       </button>
       {error && <p className="w-full text-sm text-red-600">{error}</p>}
     </form>
