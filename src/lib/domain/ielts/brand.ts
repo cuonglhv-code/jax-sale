@@ -37,7 +37,8 @@ export const BRAND = {
     taglineLockup: "/brand/tagline-lockup.svg",
   },
   /** Summit mountain scene palette (005 T003) — atmosphere layers, bottom (warm base) to top
-   *  (thin summit light). Derived from the navy/red identity; NOT the Olympia palette. */
+   *  (thin summit light). Derived solely from Jaxtina's own navy/red identity (Constitution VIII
+   *  — original visual identity; no other programme's palette, device, or branding). */
   mountain: {
     skyTop: "#1B2660",
     skyMid: "#2B3A8C",

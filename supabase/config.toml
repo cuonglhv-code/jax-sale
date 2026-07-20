@@ -135,6 +135,13 @@ public = false
 file_size_limit = "10MiB"
 allowed_mime_types = ["application/pdf", "image/png", "image/jpeg"]
 
+# IELTS Summit (slice 005) — private bucket for the archived sent-roadmap PDFs (data-model.md,
+# contracts/delivery-archive.md). Same hot-reload gotcha as above: stop/start then db reset.
+[storage.buckets.roadmap-archive]
+public = false
+file_size_limit = "10MiB"
+allowed_mime_types = ["application/pdf"]
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true

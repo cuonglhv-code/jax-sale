@@ -24,11 +24,11 @@ describe("vocabulary: navItemsForRole", () => {
     expect(keys).toContain("dashboard");
   });
 
-  it("excludes personnel/workflows/performance for centre_admin", () => {
+  it("excludes personnel/workflows for centre_admin but includes performance (slice #003 FR-ACCESS-01)", () => {
     const keys = navItemsForRole("centre_admin").map((i) => i.key);
     expect(keys).not.toContain("personnel");
     expect(keys).not.toContain("workflows");
-    expect(keys).not.toContain("performance");
+    expect(keys).toContain("performance");
     expect(keys).toContain("settings");
     expect(keys).toContain("leads");
   });

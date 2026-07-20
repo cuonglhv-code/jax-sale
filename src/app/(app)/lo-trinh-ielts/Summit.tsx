@@ -5,6 +5,7 @@ import { BRAND } from "@/lib/domain/ielts/brand";
 import { SUMMIT_COPY } from "@/lib/domain/ielts/summit-copy";
 import { centreKeyForName } from "@/lib/domain/ielts/pricing";
 import { generateSummitRoadmap } from "@/services/ielts/summit-engine";
+import { provisionalTreatmentFor } from "@/services/ielts/placement-view";
 import {
   SummitInputError,
   type SummitRoadmap,
@@ -15,6 +16,9 @@ import { OpeningControls } from "./OpeningControls";
 import { Mountain } from "./Mountain";
 import { StagePanel } from "./StagePanel";
 import { SummarySurface } from "./SummarySurface";
+import { ReviewSend } from "./ReviewSend";
+import { ProofSummit } from "./ProofSummit";
+import { SecondaryContent } from "./SecondaryContent";
 
 export type ConsultantInfo = { name: string; email: string; centreName: string };
 
@@ -49,7 +53,8 @@ export function Summit({ consultant }: { consultant: ConsultantInfo }) {
 
   const expandedCode = state.view.kind === "stage" ? state.view.code : null;
   const expandedStage = roadmap?.stages.find((s) => s.code === expandedCode) ?? null;
-  const isEstimate = state.placement.kind === "estimated";
+  // Same single decision point as the mountain marker and PDF cover (Constitution III).
+  const treatment = provisionalTreatmentFor(state.placement);
 
   return (
     <div className="flex flex-col gap-4">
@@ -106,19 +111,19 @@ export function Summit({ consultant }: { consultant: ConsultantInfo }) {
       />
 
       {/* Mode B caveat — visible without interaction, with the placement-test CTA (FR-013). */}
-      {roadmap && isEstimate && (
+      {roadmap && treatment && (
         <div
           className="flex items-center justify-between gap-4 rounded-xl border-2 border-dashed px-4 py-3"
           style={{ borderColor: BRAND.color.red, backgroundColor: `${BRAND.color.red}0D` }}
         >
           <p className="text-sm font-bold" style={{ color: BRAND.color.red }}>
-            {SUMMIT_COPY.provisionalCaveat}
+            {treatment.caveat}
           </p>
           <span
             className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-bold text-white"
             style={{ backgroundColor: BRAND.color.red }}
           >
-            {SUMMIT_COPY.bookPlacementCta}
+            {treatment.cta}
           </span>
         </div>
       )}
@@ -130,7 +135,17 @@ export function Summit({ consultant }: { consultant: ConsultantInfo }) {
         </p>
       )}
 
-      {roadmap && (
+      {roadmap && state.view.kind === "review" && (
+        <ReviewSend
+          roadmap={roadmap}
+          consultant={consultant}
+          onBack={() => dispatch({ type: "exitReview" })}
+          onDocumentPrepared={() => dispatch({ type: "documentPrepared" })}
+          onSent={() => dispatch({ type: "markSent", at: new Date().toISOString() })}
+        />
+      )}
+
+      {roadmap && state.view.kind !== "review" && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
           <Mountain
             stages={roadmap.stages}
@@ -154,13 +169,40 @@ export function Summit({ consultant }: { consultant: ConsultantInfo }) {
               >
                 {SUMMIT_COPY.railBack}
               </RailButton>
+              <RailButton isActive={false} onClick={() => dispatch({ type: "enterReview" })}>
+                {SUMMIT_COPY.railReview}
+              </RailButton>
+              <RailButton
+                isActive={state.view.kind === "secondary" && state.view.tab === "ecosystem"}
+                onClick={() => dispatch({ type: "openSecondary", tab: "ecosystem" })}
+              >
+                {SUMMIT_COPY.railEcosystem}
+              </RailButton>
+              <RailButton
+                isActive={state.view.kind === "secondary" && state.view.tab === "commitments"}
+                onClick={() => dispatch({ type: "openSecondary", tab: "commitments" })}
+              >
+                {SUMMIT_COPY.railCommitments}
+              </RailButton>
+              <RailButton
+                isActive={state.view.kind === "secondary" && state.view.tab === "faq"}
+                onClick={() => dispatch({ type: "openSecondary", tab: "faq" })}
+              >
+                {SUMMIT_COPY.railFaq}
+              </RailButton>
             </nav>
 
             {expandedStage && (
               <StagePanel stage={expandedStage} onClose={() => dispatch({ type: "closeStage" })} />
             )}
-            {state.view.kind === "summary" && (
-              <SummarySurface roadmap={roadmap} isEstimate={isEstimate} />
+            {state.view.kind === "summary" && <SummarySurface roadmap={roadmap} />}
+            {state.view.kind === "secondary" && (
+              <SecondaryContent tab={state.view.tab} onBack={() => dispatch({ type: "closeSecondary" })} />
+            )}
+
+            {/* The summit is what the climb earns — matched proof, always available (Story 4). */}
+            {state.currentBand && state.targetBand && (
+              <ProofSummit currentBand={state.currentBand} targetBand={state.targetBand} />
             )}
           </div>
         </div>

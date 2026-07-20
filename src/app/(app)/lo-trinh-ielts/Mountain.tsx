@@ -5,6 +5,7 @@ import { SUMMIT_COPY } from "@/lib/domain/ielts/summit-copy";
 import { bandLabel } from "@/lib/domain/ielts/labels";
 import type { SummitStage, Placement } from "@/services/ielts/summit-types";
 import { assertNever } from "@/services/ielts/summit-types";
+import { provisionalTreatmentFor } from "@/services/ielts/placement-view";
 
 type Props = {
   /** Bottom → top (engine order). Rendered with column-reverse so the summit sits on top. */
@@ -99,30 +100,33 @@ export function Mountain({ stages, studentName, placement, expandedCode, onOpenS
   );
 }
 
-/** Exhaustive on Placement: the estimated branch IS the provisional treatment (no flag). */
+/**
+ * Derives from `provisionalTreatmentFor` — THE single decision point (Constitution III). A
+ * null treatment renders the measured marker; any non-null treatment renders the provisional
+ * one, so a third Placement variant would need a new treatment shape before it could ever
+ * reach this component silently as "measured".
+ */
 function StartMarker({ studentName, placement }: { studentName: string; placement: Placement }) {
-  switch (placement.kind) {
-    case "measured":
-      return (
-        <span className="ml-auto flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-bold" style={{ color: BRAND.color.navy }}>
-          <span aria-hidden>▲</span>
-          {studentName || "…"} · {SUMMIT_COPY.measuredMarker}
-          {placement.testDate ? ` (${placement.testDate})` : ""}
-        </span>
-      );
-    case "estimated":
-      return (
-        <span
-          className="ml-auto flex items-center gap-2 rounded-full border-2 border-dashed px-3 py-1 text-xs font-bold"
-          style={{ borderColor: BRAND.color.red, color: "#FFFFFF", backgroundColor: `${BRAND.color.red}CC` }}
-        >
-          <span aria-hidden>?</span>
-          {studentName || "…"} · {SUMMIT_COPY.provisionalMarker}
-        </span>
-      );
-    default:
-      return assertNever(placement);
+  const treatment = provisionalTreatmentFor(placement);
+  if (!treatment) {
+    const testDate = placement.kind === "measured" ? placement.testDate : null;
+    return (
+      <span className="ml-auto flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-bold" style={{ color: BRAND.color.navy }}>
+        <span aria-hidden>▲</span>
+        {studentName || "…"} · {SUMMIT_COPY.measuredMarker}
+        {testDate ? ` (${testDate})` : ""}
+      </span>
+    );
   }
+  return (
+    <span
+      className="ml-auto flex items-center gap-2 rounded-full border-2 border-dashed px-3 py-1 text-xs font-bold"
+      style={{ borderColor: BRAND.color.red, color: "#FFFFFF", backgroundColor: `${BRAND.color.red}CC` }}
+    >
+      <span aria-hidden>?</span>
+      {studentName || "…"} · {treatment.marker}
+    </span>
+  );
 }
 
 /** Band range chip used by the opening summary line above the mountain. */

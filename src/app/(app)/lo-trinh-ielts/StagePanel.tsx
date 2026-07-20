@@ -17,17 +17,17 @@ function NarrativeBlocks({ narrative }: { narrative: CourseNarrative }) {
     case "booster-achiever":
       return (
         <div className="flex flex-col gap-3">
-          <Block label="Học viên bắt đầu ở đâu?">{narrative.startPoint}</Block>
+          <Block label={SUMMIT_COPY.narrative.startPoint}>{narrative.startPoint}</Block>
           {/* The emotional hook — given visual weight (spec: "give it weight"). */}
           <div className="rounded-lg border-l-4 p-3" style={{ borderColor: BRAND.color.red, backgroundColor: `${BRAND.color.red}0D` }}>
-            <p className="text-sm font-bold" style={{ color: BRAND.color.red }}>Nút thắt thật sự</p>
+            <p className="text-sm font-bold" style={{ color: BRAND.color.red }}>{SUMMIT_COPY.narrative.bottleneck}</p>
             <p className="mt-1 text-base font-medium">{narrative.bottleneck}</p>
           </div>
-          <Block label="Khóa học giải quyết như thế nào?">{narrative.howItSolves}</Block>
+          <Block label={SUMMIT_COPY.narrative.howItSolves}>{narrative.howItSolves}</Block>
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr style={{ color: BRAND.color.navy }}>
-                <th className="border-b p-2 text-left font-semibold">Kỹ năng</th>
+                <th className="border-b p-2 text-left font-semibold">{SUMMIT_COPY.skillColumnLabel}</th>
                 <th className="border-b p-2 text-left font-semibold">{SUMMIT_COPY.progressionCoreLabel}</th>
                 <th className="border-b p-2 text-left font-semibold">{SUMMIT_COPY.progressionSimpleLabel}</th>
               </tr>
@@ -42,29 +42,29 @@ function NarrativeBlocks({ narrative }: { narrative: CourseNarrative }) {
               ))}
             </tbody>
           </table>
-          <Block label="Sau khóa học, học viên thay đổi như thế nào?">{narrative.afterCourse}</Block>
+          <Block label={SUMMIT_COPY.narrative.afterCourse}>{narrative.afterCourse}</Block>
         </div>
       );
     case "foundation":
       return (
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-bold" style={{ color: BRAND.color.navy }}>Bạn sẽ học gì?</p>
-          <Block label="Nghe & Đọc">{narrative.learn.listeningReading}</Block>
-          <Block label="Viết & Nói">{narrative.learn.writingSpeaking}</Block>
-          <Block label="Từ vựng">{narrative.learn.vocabulary}</Block>
-          <Block label="Ngữ pháp">{narrative.learn.grammar}</Block>
-          <Block label="Mục tiêu khóa học">{narrative.goal}</Block>
+          <p className="text-sm font-bold" style={{ color: BRAND.color.navy }}>{SUMMIT_COPY.foundationLearnTitle}</p>
+          <Block label={SUMMIT_COPY.narrative.listeningReading}>{narrative.learn.listeningReading}</Block>
+          <Block label={SUMMIT_COPY.narrative.writingSpeaking}>{narrative.learn.writingSpeaking}</Block>
+          <Block label={SUMMIT_COPY.narrative.vocabulary}>{narrative.learn.vocabulary}</Block>
+          <Block label={SUMMIT_COPY.narrative.grammar}>{narrative.learn.grammar}</Block>
+          <Block label={SUMMIT_COPY.narrative.goal}>{narrative.goal}</Block>
         </div>
       );
     case "intensive":
       return (
         <div className="flex flex-col gap-3">
-          <Block label="Đối tượng">{narrative.audience}</Block>
-          <Block label="Mục tiêu khóa học">{narrative.goal}</Block>
+          <Block label={SUMMIT_COPY.narrative.audience}>{narrative.audience}</Block>
+          <Block label={SUMMIT_COPY.narrative.goal}>{narrative.goal}</Block>
           <div className="grid grid-cols-3 gap-3">
-            <Column title="NÓI">{narrative.columns.speaking}</Column>
-            <Column title="VIẾT">{narrative.columns.writing}</Column>
-            <Column title="CHIẾN LƯỢC THI">{narrative.columns.examStrategy}</Column>
+            <Column title={SUMMIT_COPY.narrative.speaking}>{narrative.columns.speaking}</Column>
+            <Column title={SUMMIT_COPY.narrative.writing}>{narrative.columns.writing}</Column>
+            <Column title={SUMMIT_COPY.narrative.examStrategy}>{narrative.columns.examStrategy}</Column>
           </div>
         </div>
       );

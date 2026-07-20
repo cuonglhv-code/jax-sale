@@ -38,7 +38,7 @@ function assertKnownBand(band: Band, label: string): void {
   }
 }
 
-function addWeeks(isoDate: string, weeks: number): string {
+export function addWeeks(isoDate: string, weeks: number): string {
   const d = new Date(`${isoDate}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + Math.round(weeks * 7));
   return d.toISOString().slice(0, 10);

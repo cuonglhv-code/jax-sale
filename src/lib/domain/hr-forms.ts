@@ -4,13 +4,13 @@
  * `schema.parse` → type-specific rules → atomic create RPC. Adding a tenth form = adding one entry,
  * no new pipeline (FR-002).
  *
- * SCAFFOLD ONLY: the per-type definitions (fields + Zod schema + side effects) are registered in
- * US1 (annual_leave) and US5 (the remaining eight). This file ships the types and an empty registry
- * so downstream code can depend on the shape now.
+ * `annual_leave` is registered here in US1; the remaining eight register in US5 (T046/T047) — this
+ * file ships the types + registry so downstream code can depend on the shape now.
  */
 
 import { z } from "zod";
-import type { RequestType } from "@/lib/data/types";
+import { LEAVE_DAY_PARTS, REQUEST_TYPES, type RequestType } from "@/lib/data/types";
+import { annualLeaveSchema, type AnnualLeaveInput } from "@/schemas/hr/submit";
 
 /** Renderable field kinds for the schema-driven form renderer. */
 export type FieldKind = "text" | "textarea" | "date" | "number" | "select" | "file";
@@ -61,4 +61,37 @@ export function getFormDefinition(type: RequestType): FormDefinition {
   const definition = HR_FORM_REGISTRY[type];
   if (!definition) throw new Error(`Chưa đăng ký loại yêu cầu: ${type}`);
   return definition;
+}
+
+// ── annual_leave (US1) ─────────────────────────────────────────────────────────
+HR_FORM_REGISTRY.annual_leave = {
+  type: "annual_leave",
+  fields: [
+    { name: "startDate", kind: "date", labelKey: "hr.annualLeave.startDate", required: true },
+    { name: "endDate", kind: "date", labelKey: "hr.annualLeave.endDate", required: true },
+    { name: "dayPart", kind: "select", labelKey: "hr.annualLeave.dayPart", options: LEAVE_DAY_PARTS },
+    { name: "note", kind: "textarea", labelKey: "hr.annualLeave.note" },
+  ],
+  schema: annualLeaveSchema,
+  requiresDocument: false,
+  isMoneyForm: false,
+  sideEffect: "draw_annual_balance",
+  // Leave overlapping a taught session needs an accepted cover before approval — the resolver and
+  // the cover_assignment rows themselves are US4 (T040/T042); this only marks the type as scoped.
+  conflictScoped: true,
+};
+
+const requestTypeEnvelopeSchema = z.object({
+  requestType: z.enum(REQUEST_TYPES, { message: "Loại yêu cầu không hợp lệ" }),
+});
+
+/**
+ * Dispatch raw submit input to the registered type's schema (US1: `annual_leave` only — the return
+ * type widens to a union once US5 registers the rest). Single dispatch point so adding a form type
+ * never grows a parallel per-type switch elsewhere (FR-002).
+ */
+export function parseSubmitInput(raw: unknown): AnnualLeaveInput {
+  const { requestType } = requestTypeEnvelopeSchema.parse(raw);
+  const definition = getFormDefinition(requestType);
+  return definition.schema.parse(raw) as AnnualLeaveInput;
 }

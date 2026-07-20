@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getVerifiedClaims } from "@/lib/auth/claims";
 import { roleHasPermission } from "@/lib/auth/permissions";
 import { Summit } from "./Summit";
+import { RegisterServiceWorker } from "./RegisterServiceWorker";
 
 // US1 (T030): gated to roles holding roadmap.generate (deny teacher). Loads the consultant's own
 // details + centre name to prefill the form.
@@ -37,5 +38,10 @@ export default async function RoadmapPage() {
     centreName: (centre?.name as string) ?? "",
   };
 
-  return <Summit consultant={consultant} />;
+  return (
+    <>
+      <RegisterServiceWorker />
+      <Summit consultant={consultant} />
+    </>
+  );
 }

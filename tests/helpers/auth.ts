@@ -11,6 +11,7 @@ const SEED_PASSWORD = "Password123!";
 export const SEEDED_USERS = {
   superAdmin: "admin@jaxtina.test",
   managerQ1: "manager.q1@jaxtina.test",
+  managerQ3: "manager.q3@jaxtina.test", // US2 (T031): cross-centre manager for isolation proofs
   adminQ3: "admin.q3@jaxtina.test",
   saleQ1: "sale.q1@jaxtina.test",
   saleQ3: "sale.q3@jaxtina.test",

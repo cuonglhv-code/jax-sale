@@ -4,6 +4,7 @@ import { BRAND } from "@/lib/domain/ielts/brand";
 import { SUMMIT_COPY } from "@/lib/domain/ielts/summit-copy";
 import { formatVnd } from "@/lib/domain/ielts/pricing";
 import type { SummitRoadmap } from "@/services/ielts/summit-types";
+import { provisionalTreatmentFor } from "@/services/ielts/placement-view";
 
 /** "43–53 tuần (≈10–12 tháng)" — always a range, never false precision (FR-004). */
 export function formatDurationRange(roadmap: SummitRoadmap): string {
@@ -21,13 +22,13 @@ function formatFinishWindow(roadmap: SummitRoadmap): string {
 
 type Props = {
   roadmap: SummitRoadmap;
-  /** Estimate framing when provisional (Mode B) — supplied by the shell via Placement. */
-  isEstimate: boolean;
 };
 
 /** The climb's summary: buổi, duration range, projected finish, arithmetic total (FR-007). */
-export function SummarySurface({ roadmap, isEstimate }: Props) {
-  const prefix = isEstimate ? `${SUMMIT_COPY.provisionalEstimatePrefix} ` : "";
+export function SummarySurface({ roadmap }: Props) {
+  // Same single decision point as the mountain marker and PDF cover (Constitution III).
+  const treatment = provisionalTreatmentFor(roadmap.request.placement);
+  const prefix = treatment ? `${treatment.estimatePrefix} ` : "";
   return (
     <section
       aria-label={SUMMIT_COPY.summaryTitle}

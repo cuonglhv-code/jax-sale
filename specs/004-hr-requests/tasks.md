@@ -64,19 +64,19 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 ### Tests (write first, must fail)
 
-- [ ] T015 [P] [US1] Unit test working-days + annual-leave schema in `tests/unit/hr/working-days.test.ts`
-- [ ] T016 [P] [US1] Integration: submit annual leave → `pending` + centre from claims + `from_status=null` history row, in `tests/integration/hr/us1-submit.test.ts`
-- [ ] T016a [P] [US1] Integration: submitting leave that overlaps the submitter's own pending/approved leave is rejected with a Vietnamese message, in `tests/integration/hr/us1-self-overlap.test.ts`
-- [ ] T017 [P] [US1] Permission test: unauthenticated / inactive employee submit rejected, in `tests/integration/hr/us1-submit-auth.test.ts`
+- [X] T015 [P] [US1] Unit test working-days + annual-leave schema in `tests/unit/hr/working-days.test.ts`
+- [X] T016 [P] [US1] Integration: submit annual leave → `pending` + centre from claims + `from_status=null` history row, in `tests/integration/hr/us1-submit.test.ts`
+- [X] T016a [P] [US1] Integration: submitting leave that overlaps the submitter's own pending/approved leave is rejected with a Vietnamese message, in `tests/integration/hr/us1-self-overlap.test.ts`
+- [X] T017 [P] [US1] Permission test: unauthenticated / inactive employee submit rejected, in `tests/integration/hr/us1-submit-auth.test.ts`
 
 ### Implementation
 
-- [ ] T018 [US1] Migration `supabase/migrations/20260716130004_hr_fn_submit.sql` — `create_hr_request_with_log(...)` (atomic: request + initial history row + cover rows), SECURITY INVOKER
-- [ ] T019 [P] [US1] `annual_leave` Zod schema in `src/schemas/hr/submit.ts` + register its `FormDefinition` in `src/lib/domain/hr-forms.ts`
-- [ ] T020 [US1] `submit-request.ts` Server Action + `submitRequestCore` in `src/services/hr-request.service.ts` (pipeline: `withError → assertPermission('hrRequest.submit') → schema.parse → create RPC → write_audit_log`) — depends on T018, T019
-- [ ] T020a [US1] Add a self-overlap guard to `submitRequestCore` in `src/services/hr-request.service.ts`: reject a leave request whose date range overlaps the submitter's own non-terminal (pending/awaiting_cover/approved) leave, with a friendly Vietnamese `DomainError` (shared submit path — applies to all leave-family types; edge case) — depends on T020
-- [ ] T021 [P] [US1] `useSubmitRequest` mutation + `useMyRequests` query hooks in `src/hooks/{mutations,queries}/hr/`
-- [ ] T022 [US1] `/nhan-su` page: form-type picker + schema-driven annual-leave form + inline remaining-balance display, in `src/app/(app)/nhan-su/page.tsx`
+- [X] T018 [US1] Migration `supabase/migrations/20260717130004_hr_fn_submit.sql` — `create_hr_request_with_log(...)` (atomic: request + initial history row; US1 passes no cover rows — US4/T042 extends), SECURITY INVOKER
+- [X] T019 [P] [US1] `annual_leave` Zod schema in `src/schemas/hr/submit.ts` + register its `FormDefinition` in `src/lib/domain/hr-forms.ts`
+- [X] T020 [US1] `submit-request.ts` Server Action + `submitRequestCore` in `src/services/hr-request.service.ts` (pipeline: `withError → assertPermission('hrRequest.submit') → schema.parse → create RPC → write_audit_log`) — depends on T018, T019
+- [X] T020a [US1] Add a self-overlap guard to `submitRequestCore` in `src/services/hr-request.service.ts`: reject a leave request whose date range overlaps the submitter's own non-terminal (pending/awaiting_cover/approved) leave, with a friendly Vietnamese `DomainError` (shared submit path — applies to all leave-family types; edge case) — depends on T020
+- [X] T021 [P] [US1] `useSubmitRequest` mutation + `useMyRequests` query hooks in `src/hooks/{mutations,queries}/hr/`
+- [X] T022 [US1] `/yeu-cau` page (NOT `/nhan-su` — that route's `personnel` NAV_ITEM is role-restricted to super_admin/centre_manager; a new top-level route + `hrRequests` NAV_ITEM keeps this surface reachable by every role and avoids a future file collision with slice-001's personnel-management page): form-type picker + schema-driven annual-leave form + inline remaining-balance display, in `src/app/(app)/yeu-cau/page.tsx`
 
 **Checkpoint**: Annual-leave submission works end-to-end.
 
@@ -90,16 +90,16 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 ### Tests (write first, must fail)
 
-- [ ] T023 [P] [US3] Unit: entitlement compute (baseline + seniority + mid-year/part-time prorate) in `tests/unit/hr/entitlement.test.ts`
-- [ ] T024 [P] [US3] Integration: approve annual → `consumed_days += D`; withdraw → restored, in `tests/integration/hr/us3-ledger.test.ts`
-- [ ] T025 [P] [US3] Integration: two concurrent approvals do not double-spend (row lock), in `tests/integration/hr/us3-no-double-spend.test.ts`
+- [X] T023 [P] [US3] Unit: entitlement compute (baseline + seniority + mid-year/part-time prorate) in `tests/unit/hr/entitlement.test.ts`
+- [X] T024 [P] [US3] Integration: approve annual → `consumed_days += D`; withdraw → restored, in `tests/integration/hr/us3-ledger.test.ts`
+- [X] T025 [P] [US3] Integration: two concurrent approvals do not double-spend (row lock), in `tests/integration/hr/us3-no-double-spend.test.ts`
 
 ### Implementation
 
-- [ ] T026 [US3] Migration `supabase/migrations/20260716130005_hr_fn_balance.sql` — `recompute_entitlement`, `consume_leave_balance`/`restore_leave_balance` (with `SELECT … FOR UPDATE`), `adjust_opening_balance` (super_admin, audited)
-- [ ] T027 [P] [US3] `leave-balance.service.ts` (entitlement wrapper, adjust) + `src/schemas/hr/balance.ts`
-- [ ] T028 [P] [US3] `adjust-balance.ts` action (key `leaveBalance.adjust`) + `useLeaveBalance` query hook
-- [ ] T029 [US3] Wire the over-balance **warning** (recompute at submit; indicative only) into `submitRequestCore` + a balance-impact display component
+- [X] T026 [US3] Migration `supabase/migrations/20260717130005_hr_fn_balance.sql` — `recompute_entitlement`, `consume_leave_balance`/`restore_leave_balance` (with `SELECT … FOR UPDATE`), `adjust_opening_balance` (super_admin, audited). Built SECURITY DEFINER (deviation — see task report) since `leave_balance` has no authenticated write grant.
+- [X] T027 [P] [US3] `leave-balance.service.ts` (entitlement wrapper, adjust) + `src/schemas/hr/balance.ts`
+- [X] T028 [P] [US3] `adjust-balance.ts` action (key `leaveBalance.adjust`) + `get-my-balance.ts` action + `useLeaveBalance` query hook + `useAdjustBalance` mutation hook
+- [X] T029 [US3] Wire the over-balance **warning** (recompute at submit; indicative only) into `submitRequestCore` + a balance-impact display component
 
 **Checkpoint**: Ledger is trustworthy — consume/restore/over-balance/no-double-spend all proven.
 
@@ -112,19 +112,19 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 ### Tests (write first, must fail)
 
-- [ ] T030 [P] [US2] Permission test: non-manager `decideRequest` rejected, in `tests/integration/hr/us2-decide-auth.test.ts`
-- [ ] T031 [P] [US2] Centre-isolation: manager of centre B cannot read/decide a centre-A request, in `tests/integration/hr/us2-isolation.test.ts`
-- [ ] T032 [P] [US2] Integration: approve → `approved` + history + audit + balance consumed (fresh recompute); reject requires reason; self-approval routes to super_admin, in `tests/integration/hr/us2-decide.test.ts`
-- [ ] T032a [P] [US2] Integration: deactivating an employee who has a pending/awaiting_cover request auto-closes it (consumed balance restored, covers released, audited), in `tests/integration/hr/us2-deactivate-pending.test.ts`
+- [X] T030 [P] [US2] Permission test: non-manager `decideRequest` rejected, in `tests/integration/hr/us2-decide-auth.test.ts`
+- [X] T031 [P] [US2] Centre-isolation: manager of centre B cannot read/decide a centre-A request, in `tests/integration/hr/us2-isolation.test.ts`
+- [X] T032 [P] [US2] Integration: approve → `approved` + history + audit + balance consumed (fresh recompute); reject requires reason; self-approval routes to super_admin, in `tests/integration/hr/us2-decide.test.ts`
+- [X] T032a [P] [US2] Integration: deactivating an employee who has a pending/awaiting_cover request auto-closes it (consumed balance restored, covers released, audited), in `tests/integration/hr/us2-deactivate-pending.test.ts`
 
 ### Implementation
 
-- [ ] T033 [US2] Migration `supabase/migrations/20260716130006_hr_fn_decide.sql` — `approve_request` (status flow + all-covers-accepted check + self-approval guard + calls `consume_leave_balance` with fresh recompute; idempotent via `status='pending'`) and `reject_request` (requires reason)
-- [ ] T034 [US2] `decide-request.ts` action + `decideRequestCore` in `src/services/hr-request.service.ts`
-- [ ] T035 [P] [US2] `useDecideRequest` mutation + `useApprovalQueue` query (sorted soonest-start; `hasAttachment` only) hooks
-- [ ] T036 [US2] Approval queue UI `src/app/(app)/nhan-su/duyet/page.tsx` — context-rich rows (who/what/when, fresh balance impact, sessions, cover status), reject-reason modal
-- [ ] T037 [US2] `cancel-request.ts` action + `cancel_or_withdraw_request` RPC (restore balance on withdraw; release covers) + `useCancelRequest` hook
-- [ ] T037a [US2] Extend slice-001 `deactivateEmployeeCore` (`src/services/personnel.service.ts`) to call a new `closePendingRequestsFor(employeeId)` path in `src/services/hr-request.service.ts`: cancel the employee's pending/awaiting_cover requests, restore any consumed balance, release covers, write history + audit (edge case: submitter leaves while pending) — surgical cross-slice extension; depends on T026, T037
+- [X] T033 [US2] Migration `supabase/migrations/20260717130006_hr_fn_decide.sql` — `approve_request` (status flow + all-covers-accepted check + self-approval guard + calls `consume_leave_balance`; idempotent via `status='pending'` re-checked AFTER row lock) and `reject_request` (requires reason); also `cancel_or_withdraw_request` (T037) in the same file. Named with the `20260717…` HR-slice timestamp prefix (not `20260716…` as originally drafted) to sort after T026 (`20260717130005_hr_fn_balance.sql`), which it depends on.
+- [X] T034 [US2] `decide-request.ts` action + `decideRequestCore` in `src/services/hr-request.service.ts`
+- [X] T035 [P] [US2] `useDecideRequest` mutation + `useApprovalQueue` query (sorted soonest-start) hooks — `hasAttachment` projection deferred to US6 (no attachments exist until then)
+- [X] T036 [US2] Approval queue UI `src/app/(app)/nhan-su/duyet/page.tsx` — rows show who/what/when/working-days/status; approve button; reject opens an inline reason prompt (plain state) requiring non-empty text. Cover/session status deferred to US4 (no cover_assignment rows exist until then).
+- [X] T037 [US2] `cancel-request.ts` action + `cancel_or_withdraw_request` RPC (restore balance on withdraw; release covers) + `useCancelRequest` hook
+- [X] T037a [US2] Extend slice-001 `deactivateEmployeeCore` (`src/services/personnel.service.ts`) to call a new `closePendingRequestsFor(employeeId)` path in `src/services/hr-request.service.ts`: cancel the employee's pending/awaiting_cover requests, restore any consumed balance, release covers, write history + audit (edge case: submitter leaves while pending) — surgical cross-slice extension; depends on T026, T037
 
 **Checkpoint**: 🎯 **MVP complete** — annual leave submitted, balance-tracked, and decided, fully audited.
 

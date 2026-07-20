@@ -44,8 +44,30 @@ export const SUMMIT_COPY = {
   priceLabel: "Học phí",
   progressionCoreLabel: "Progression cốt lõi",
   progressionSimpleLabel: "Cách hiểu đơn giản",
+  skillColumnLabel: "Kỹ năng",
+  foundationLearnTitle: "Bạn sẽ học gì?",
+
+  /** Narrative block labels (FR-009) — shared by StagePanel (read) and EditableNarrative (edit)
+   *  so the two never drift and neither hardcodes its own copy of these labels. */
+  narrative: {
+    startPoint: "Học viên bắt đầu ở đâu?",
+    bottleneck: "Nút thắt thật sự",
+    howItSolves: "Khóa học giải quyết như thế nào?",
+    afterCourse: "Sau khóa học, học viên thay đổi như thế nào?",
+    listeningReading: "Nghe & Đọc",
+    writingSpeaking: "Viết & Nói",
+    vocabulary: "Từ vựng",
+    grammar: "Ngữ pháp",
+    goal: "Mục tiêu khóa học",
+    audience: "Đối tượng",
+    speaking: "NÓI",
+    writing: "VIẾT",
+    examStrategy: "CHIẾN LƯỢC THI",
+    summary: "Tóm tắt",
+  },
 
   /** Review & send. */
+  railReview: "Xem lại & gửi",
   reviewTitle: "Xem lại & gửi lộ trình",
   reviewSubtitle: "Bản xem trước dưới đây chính là tài liệu học viên sẽ nhận.",
   consultantNoteLabel: "Ghi chú từ tư vấn viên",

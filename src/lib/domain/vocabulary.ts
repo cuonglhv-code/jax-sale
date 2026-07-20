@@ -175,6 +175,7 @@ export type ModuleKey =
   | "performance"
   | "performanceActivity"
   | "roadmap"
+  | "hrRequests"
   | "hrApprovals"
   | "hrTimetable"
   | "hrConfig"
@@ -249,9 +250,18 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Lộ trình IELTS",
     roles: ["super_admin", "centre_manager", "centre_admin", "sale_consultant"],
   },
-  // HR sub-routes under the reserved /nhan-su area (slice #004). The base /nhan-su landing
-  // (submit + my-requests, all roles) is governed by the existing `personnel` entry above; these
-  // add the management-facing sub-routes with their own access scoping (data-model §13).
+  // US1 (T022): employee submit + "my requests", reachable by EVERY role. Deliberately a NEW
+  // top-level route, not a /nhan-su sub-path — the existing `personnel` entry above restricts
+  // /nhan-su to super_admin/centre_manager, so a sub-path would (a) be hidden from every other
+  // role's sidebar and (b) risk a page-file collision with slice-001's future personnel-management
+  // landing at /nhan-su/page.tsx. The route-guard proof lives in tests/unit/hr/hr-nav.test.ts.
+  {
+    key: "hrRequests",
+    route: "/yeu-cau",
+    label: "Yêu cầu nhân sự",
+    roles: ALL_ROLES,
+  },
+  // HR management sub-routes under the reserved /nhan-su area (slice #004; data-model §13).
   {
     key: "hrApprovals",
     route: "/nhan-su/duyet",

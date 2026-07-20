@@ -56,8 +56,8 @@ it (T013) to avoid a collision.
 - [X] T010 Migration `*_kpi_schema.sql`: `personal_kpis` (unique (consultant,period,metric); CHECK `target>0` or NULL, `actual≥0`, period regex, approval_status enum), `department_kpi_targets` (no centre_id; `target>0`), `personal_kpi_status_logs` (append-only) + indexes per [data-model.md](./data-model.md)
 - [X] T011 Migration `*_kpi_rls.sql`: **tiered** SELECT + centre-narrow write on `personal_kpis`; Pattern-B admin-only on `department_kpi_targets`; append-only tiered `personal_kpi_status_logs` per [contracts/rls-policies.md](./contracts/rls-policies.md) (FR-VIS-01)
 - [X] T012 Migration `*_kpi_functions.sql`: `enforce_actual_only` BEFORE UPDATE trigger + `log_actual_edit_transition`; `approve_personal_kpi`/`reject_personal_kpi` guarded functions; `kpi_dashboard`/`kpi_leaderboard` SECURITY-INVOKER aggregation functions per [contracts/kpi-functions.md](./contracts/kpi-functions.md) (FR-APPROVAL, D-ACTUAL/D-AGG)
-- [ ] T013 Confirm highest existing migration number (avoid #002 collision), stamp these three after it; apply (`supabase db reset`); verify tables + policies + trigger + 4 functions exist
-- [ ] T014 [P] Extend `supabase/seed.sql`: ≥2 centres across ≥2 departments, each with a sale_consultant + centre_manager/centre_admin, plus a super_admin (RFC-4122 UUIDs — memory gotcha) for isolation + department-rollup tests
+- [X] T013 Confirm highest existing migration number (avoid #002 collision), stamp these three after it; apply (`supabase db reset`); verify tables + policies + trigger + 4 functions exist
+- [X] T014 [P] Extend `supabase/seed.sql`: ≥2 centres across ≥2 departments, each with a sale_consultant + centre_manager/centre_admin, plus a super_admin (RFC-4122 UUIDs — memory gotcha) for isolation + department-rollup tests. NOTE: existing slice-#001 seed already satisfied this (2 centres, 4 depts, super_admin + centre_manager(Q1) + centre_admin(Q3) + 2 sale_consultants across centres + teacher) — verified live in DB, no seed changes needed
 
 **Checkpoint**: security substrate + attainment engine ready; every story can now be built test-first.
 
@@ -71,14 +71,14 @@ it (T013) to avoid a collision.
 log; the owner sees them; a UPDATE touching target/status/peer row fails.
 
 ### Tests (write FIRST, MUST fail; live DB, no mocks) ⚠️
-- [ ] T015 [P] [US1] Actual-only trigger proof: a consultant UPDATE touching `target`/`approval_status`/a peer row fails; an `actual`-only UPDATE succeeds → `pending` + status-log in `tests/integration/kpi/actual-only.test.ts` (AC-1.2/1.4, SC-003)
-- [ ] T016 [P] [US1] Record proof: a role lacking `personalKpi.recordActual` is denied; recording seeds `pending` + a `null→pending` log; re-record edits to `pending` in `tests/integration/kpi/record-actual.test.ts` (AC-1.1)
+- [X] T015 [P] [US1] Actual-only trigger proof: a consultant UPDATE touching `target`/`approval_status`/a peer row fails; an `actual`-only UPDATE succeeds → `pending` + status-log in `tests/integration/kpi/actual-only.test.ts` (AC-1.2/1.4, SC-003)
+- [X] T016 [P] [US1] Record proof: a role lacking `personalKpi.recordActual` is denied; recording seeds `pending` + a `null→pending` log; re-record edits to `pending` in `tests/integration/kpi/record-actual.test.ts` (AC-1.1)
 
 ### Implementation
-- [ ] T017 [US1] `recordActualCore` in `src/services/kpi/kpi.service.ts` — upsert own row's `actual` (INSERT seeds `pending` + writes `null→pending` log; `consultant_id`/`centre_id` from claims, never client) + audit (FR-ACTUAL-01..04)
-- [ ] T018 [US1] `recordActual` server action (canonical pipeline + audit) in `src/app/actions/kpi/record-actual.ts` per [contracts/kpi.actions.md](./contracts/kpi.actions.md)
-- [ ] T019 [US1] `getMyPerformance` read action (own entries + derived `Attainment` for a period; own approval states) in `src/app/actions/kpi/get-my-performance.ts`
-- [ ] T020 [US1] `/hieu-suat` `page.tsx` server (resolve claims, gate, branch surface by tier) + `RecordActualForm.tsx` + `MyPerformance.tsx` (consultant tier: own attainment, no leaderboard) in `src/app/(app)/hieu-suat/` (AC-1.1/1.5, AC-3.1)
+- [X] T017 [US1] `recordActualCore` in `src/services/kpi/kpi.service.ts` — upsert own row's `actual` (INSERT seeds `pending` + writes `null→pending` log; `consultant_id`/`centre_id` from claims, never client) + audit (FR-ACTUAL-01..04)
+- [X] T018 [US1] `recordActual` server action (canonical pipeline + audit) in `src/app/actions/kpi/record-actual.ts` per [contracts/kpi.actions.md](./contracts/kpi.actions.md)
+- [X] T019 [US1] `getMyPerformance` read action (own entries + derived `Attainment` for a period; own approval states) in `src/app/actions/kpi/get-my-performance.ts`
+- [X] T020 [US1] `/hieu-suat` `page.tsx` server (resolve claims, gate, branch surface by tier) + `RecordActualForm.tsx` + `MyPerformance.tsx` (consultant tier: own attainment, no leaderboard) in `src/app/(app)/hieu-suat/` (AC-1.1/1.5, AC-3.1)
 
 **Checkpoint**: a consultant records results → sees own provisional attainment; nothing counts yet.
 
@@ -92,13 +92,13 @@ log; the owner sees them; a UPDATE touching target/status/peer row fails.
 still excluded; a centre-A manager cannot approve a centre-B row.
 
 ### Tests (write FIRST, MUST fail; live DB, no mocks) ⚠️
-- [ ] T021 [P] [US7] Transition proof: approve `pending→approved` + status-log; reject `→rejected` + log; approve/reject only from `pending`; editing an approved actual reverts to `pending` in `tests/integration/kpi/approval.test.ts` (AC-7.1/7.2/7.5, SC-007)
-- [ ] T022 [P] [US7] Approval isolation: a `sale_consultant` cannot approve (no key, no self-approve); a centre-A manager cannot approve a centre-B row (RLS-invisible) in `tests/integration/kpi/approval-isolation.test.ts` (AC-7.3/7.4, SC-003/004)
+- [X] T021 [P] [US7] Transition proof: approve `pending→approved` + status-log; reject `→rejected` + log; approve/reject only from `pending`; editing an approved actual reverts to `pending` in `tests/integration/kpi/approval.test.ts` (AC-7.1/7.2/7.5, SC-007)
+- [X] T022 [P] [US7] Approval isolation: a `sale_consultant` cannot approve (no key, no self-approve); a centre-A manager cannot approve a centre-B row (RLS-invisible) in `tests/integration/kpi/approval-isolation.test.ts` (AC-7.3/7.4, SC-003/004)
 
 ### Implementation
-- [ ] T023 [US7] `approveActual` + `rejectActual` server actions (RPC to guarded functions + audit) in `src/app/actions/kpi/approve-actual.ts`, `reject-actual.ts` per [contracts/kpi.actions.md](./contracts/kpi.actions.md)
-- [ ] T024 [US7] `listPendingApprovals` read action (own-centre `pending`, paginated) in `src/app/actions/kpi/list-pending.ts`
-- [ ] T025 [US7] `ApprovalQueue.tsx` (client) — approve/reject each row; optional batch over a consultant's pending rows (D-GRAN) in `src/app/(app)/hieu-suat/` (AC-7.1/7.2)
+- [X] T023 [US7] `approveActual` + `rejectActual` server actions (RPC to guarded functions + audit) in `src/app/actions/kpi/approve-actual.ts`, `reject-actual.ts` per [contracts/kpi.actions.md](./contracts/kpi.actions.md)
+- [X] T024 [US7] `listPendingApprovals` read action (own-centre `pending`, paginated) in `src/app/actions/kpi/list-pending.ts`
+- [X] T025 [US7] `ApprovalQueue.tsx` (client) — approve/reject each row; optional batch over a consultant's pending rows (D-GRAN) in `src/app/(app)/hieu-suat/` (AC-7.1/7.2)
 
 **Checkpoint**: only approved actuals count toward attainment/ranking/rollups.
 

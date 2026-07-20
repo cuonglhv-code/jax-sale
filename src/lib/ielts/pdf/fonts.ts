@@ -1,6 +1,3 @@
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 import { Font } from "@react-pdf/renderer";
 import { BRAND } from "@/lib/domain/ielts/brand";
 
@@ -9,50 +6,48 @@ import { BRAND } from "@/lib/domain/ielts/brand";
  * Vietnamese text uses `BRAND.font.body` (Montserrat — verified Vietnamese coverage). `font.display`
  * (Sansita) is reserved for ASCII-safe brand strings only.
  *
+ * BROWSER-SAFE BY DESIGN: PDF generation runs CLIENT-SIDE in both 002 and 005 (`pdf(...).toBlob()`
+ * inside "use client" components — Constitution V, presentation must work offline). `Font.register`
+ * therefore takes a public URL (fetched by @react-pdf at render time, works in both the browser and
+ * Node/vitest), never a filesystem path — a prior `node:fs`-based existsSync/readFileSync version
+ * resolved fine under Node-only tests but broke the Turbopack CLIENT bundle (`node:fs` has no
+ * browser equivalent), a latent bug this feature's build validation (005 T042) surfaced.
+ *
  * ⚠ Brand-asset gap: the real Jaxtina Montserrat/Sansita TTFs are supplied by Jaxtina and dropped
- * into this directory. Registration is GRACEFUL — if a TTF is absent, we skip it (the PDF still
- * renders with @react-pdf's default font). The diacritic guarantee is fully verified once the real
- * Montserrat TTF is present; the structural rule (this module) is already in place.
+ * into `public/ielts/fonts/`. `FONT_ASSETS_PRESENT` is a manual flag (not a filesystem probe, which
+ * can't run client-side) — flip it to `true` once those files exist. Until then this is GRACEFUL:
+ * registration is skipped and the PDF renders with @react-pdf's default font.
  */
+const FONT_ASSETS_PRESENT = false;
 
 let registered = false;
-
-function fontDir(): string {
-  // In tests/server this file resolves relative to source; fonts live alongside it.
-  const here = dirname(fileURLToPath(import.meta.url));
-  return here;
-}
-
-function registerIfPresent(family: string, files: { regular: string; bold?: string }): boolean {
-  const dir = fontDir();
-  const regularPath = join(dir, "fonts", files.regular);
-  if (!existsSync(regularPath)) return false;
-  const sources = [{ src: regularPath, fontWeight: 400 as const }];
-  if (files.bold) {
-    const boldPath = join(dir, "fonts", files.bold);
-    if (existsSync(boldPath)) sources.push({ src: boldPath, fontWeight: 700 as never });
-  }
-  Font.register({ family, fonts: sources });
-  return true;
-}
+let bodyRegistered = false;
+let displayRegistered = false;
 
 /** Register brand fonts once. Returns which families were actually registered (asset-dependent). */
 export function registerBrandFonts(): { body: boolean; display: boolean } {
   if (registered) return { body: bodyRegistered, display: displayRegistered };
-  bodyRegistered = registerIfPresent(BRAND.font.body, {
-    regular: "Montserrat-Regular.ttf",
-    bold: "Montserrat-Bold.ttf",
-  });
-  displayRegistered = registerIfPresent(BRAND.font.display, {
-    regular: "Sansita-Regular.ttf",
-    bold: "Sansita-Bold.ttf",
-  });
   registered = true;
-  return { body: bodyRegistered, display: displayRegistered };
-}
+  if (!FONT_ASSETS_PRESENT) return { body: false, display: false };
 
-let bodyRegistered = false;
-let displayRegistered = false;
+  Font.register({
+    family: BRAND.font.body,
+    fonts: [
+      { src: "/ielts/fonts/Montserrat-Regular.ttf", fontWeight: 400 },
+      { src: "/ielts/fonts/Montserrat-Bold.ttf", fontWeight: 700 },
+    ],
+  });
+  Font.register({
+    family: BRAND.font.display,
+    fonts: [
+      { src: "/ielts/fonts/Sansita-Regular.ttf", fontWeight: 400 },
+      { src: "/ielts/fonts/Sansita-Bold.ttf", fontWeight: 700 },
+    ],
+  });
+  bodyRegistered = true;
+  displayRegistered = true;
+  return { body: true, display: true };
+}
 
 /**
  * The font a piece of text MUST use. Diacritic-bearing Vietnamese ⇒ body font (never the display

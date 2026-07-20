@@ -75,6 +75,26 @@ export interface DeliveryResult {
   detail?: string;
 }
 
+/** Persisted send-archive row (slice 005; data-model.md `summit_sends`). Immutable audit log. */
+export interface SummitRecord {
+  id: string;
+  centreId: string;
+  consultantId: string;
+  studentName: string;
+  studentEmail: string;
+  placementKind: "measured" | "estimated";
+  placementTestDate: string | null;
+  currentBand: Band;
+  targetBand: Band;
+  courseSequence: CourseCode[];
+  totalPrice: number;
+  ladderEdited: boolean;
+  pdfPath: string;
+  deliveryStatus: "delivered" | "failed";
+  generationKey: string;
+  createdAt: string;
+}
+
 /** Persisted audit log row (tenant-scoped). */
 export interface RoadmapRecord {
   id: string;

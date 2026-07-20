@@ -35,6 +35,7 @@ export { SEED_CENTRE_Q1, SEED_CENTRE_Q3, SEEDED_USERS };
 export const HR_ROLE_EMAIL = {
   superAdmin: SEEDED_USERS.superAdmin,
   managerQ1: SEEDED_USERS.managerQ1,
+  managerQ3: SEEDED_USERS.managerQ3,
   adminQ3: SEEDED_USERS.adminQ3,
   saleQ1: SEEDED_USERS.saleQ1,
   saleQ3: SEEDED_USERS.saleQ3,

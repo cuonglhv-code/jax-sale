@@ -197,3 +197,39 @@ begin
     where not exists (select 1 from public.hr_request_status_history where request_id = r.id);
   end loop;
 end $$;
+
+-- ── US2 (T031): a second centre_manager, scoped to centre Q3, so the centre-isolation test has a
+-- REAL cross-centre manager to sign in as (the base seed only had one centre_manager, manager.q1).
+-- Additive-only; does not touch the shared employee-seeding loop above.
+do $$
+declare
+  v_password text := crypt('Password123!', gen_salt('bf'));
+  v_id uuid := '10000000-0000-4000-8000-000000000008';
+begin
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, recovery_token, email_change_token_new, email_change
+  ) values (
+    '00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated',
+    'manager.q3@jaxtina.test', v_password, now(), '{"provider":"email","providers":["email"]}'::jsonb,
+    '{}'::jsonb, now(), now(), '', '', '', ''
+  )
+  on conflict (id) do nothing;
+
+  insert into auth.identities (id, provider_id, user_id, identity_data, provider, created_at, updated_at)
+  values (
+    v_id, v_id::text, v_id,
+    jsonb_build_object('sub', v_id::text, 'email', 'manager.q3@jaxtina.test'),
+    'email', now(), now()
+  )
+  on conflict (provider_id, provider) do nothing;
+
+  insert into public.employees (
+    id, auth_user_id, full_name, email, app_role, centre_id, department_id, is_active, avatar_color
+  ) values (
+    v_id, v_id, 'Quản lý Q3', 'manager.q3@jaxtina.test', 'centre_manager',
+    '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-0000000000d1', true, '#5B8DEF'
+  )
+  on conflict (auth_user_id) do update set is_active = excluded.is_active;
+end $$;

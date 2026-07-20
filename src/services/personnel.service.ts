@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Claims } from "@/lib/data/types";
 import { DomainError } from "@/lib/server-action";
+import { closePendingRequestsFor } from "@/services/hr-request.service";
 
 /**
  * FR-007a: force a global sign-out of the target employee via the admin/service-role client, so
@@ -75,6 +76,16 @@ export async function deactivateEmployeeCore(
     p_metadata: null,
   });
   if (auditError) console.error("[audit] employee.deactivate failed to log", auditError);
+
+  // HR slice #004 (T037a): auto-close any of the deactivated employee's still-live HR requests
+  // (edge case — the submitter leaves the company while a request is pending/awaiting_cover/
+  // approved). Best-effort: a failure here must never block the deactivation itself, which is
+  // the security-critical part of this function — log and continue.
+  try {
+    await closePendingRequestsFor(supabase, employeeId);
+  } catch (hrError) {
+    console.error("[hr] closePendingRequestsFor failed during deactivation", hrError);
+  }
 
   await forceSignOutEmployeeCore(supabase, serviceClient, employeeId);
 }
