@@ -9,6 +9,7 @@ import { resolveAffectedSessions } from "@/lib/hr/conflict";
 import { listActiveClassesForTeacher, toConflictClass } from "@/services/class.service";
 import { DomainError } from "@/lib/server-action";
 import { getFormDefinition, HR_FORM_REGISTRY } from "@/lib/domain/hr-forms";
+import { hasAttachmentForRequests } from "@/services/attachment.service";
 
 /**
  * The leave-family shape shared by annual/sick/personal/unpaid leave (US1/US5) — a date-range
@@ -59,7 +60,13 @@ interface RawHrRequestRow {
   needs_reresolution?: boolean;
 }
 
-function toHrRequest(row: RawHrRequestRow): HrRequest {
+/**
+ * `hasAttachment` defaults to `false` for single-row mutation results (submit/decide/cancel) — at
+ * those call sites no attachment could exist yet (fresh submit) or the mutation's own result value
+ * doesn't drive any attachment-bearing UI; only the LIST projections (US6, T054) need the real,
+ * batched existence check — see `listMyRequestsCore`/`listApprovalQueueCore` below.
+ */
+function toHrRequest(row: RawHrRequestRow, hasAttachment = false): HrRequest {
   return {
     id: row.id,
     requestType: row.request_type as HrRequest["requestType"],
@@ -78,6 +85,7 @@ function toHrRequest(row: RawHrRequestRow): HrRequest {
     supersedesId: row.supersedes_id,
     needsReresolution: row.needs_reresolution ?? false,
     createdAt: row.created_at,
+    hasAttachment,
   };
 }
 
@@ -497,7 +505,10 @@ export async function listMyRequestsCore(supabase: SupabaseClient, claims: Claim
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return ((data ?? []) as unknown as RawHrRequestRow[]).map(toHrRequest);
+  const rows = (data ?? []) as unknown as RawHrRequestRow[];
+  // US6 (T054): only a boolean per row is ever exposed here — never the attachment row itself.
+  const attached = await hasAttachmentForRequests(supabase, rows.map((r) => r.id));
+  return rows.map((row) => toHrRequest(row, attached.has(row.id)));
 }
 
 /**
@@ -523,7 +534,10 @@ export async function listApprovalQueueCore(supabase: SupabaseClient, claims: Cl
 
   const { data, error } = await query;
   if (error) throw error;
-  return ((data ?? []) as unknown as RawHrRequestRow[]).map(toHrRequest);
+  const rows = (data ?? []) as unknown as RawHrRequestRow[];
+  // US6 (T054): approval queue shows only "Có tài liệu đính kèm" (boolean) — never the doc itself.
+  const attached = await hasAttachmentForRequests(supabase, rows.map((r) => r.id));
+  return rows.map((row) => toHrRequest(row, attached.has(row.id)));
 }
 
 export interface IndicativeAnnualBalance {

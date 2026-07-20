@@ -269,6 +269,12 @@ export interface HrRequest {
   createdAt: string; // ISO timestamp
   /** US4 (T043a): true when an accepted cover was released post-approval and needs re-resolution. */
   needsReresolution: boolean;
+  /**
+   * US6 (T054): whether ANY attachment exists for this request — the ONLY attachment-related field
+   * ever exposed on list/report projections (data-model §7: never the storage path, mime type, or
+   * any document content in those contexts).
+   */
+  hasAttachment: boolean;
 }
 
 /** Append-only per-request timeline — a from-null row is written at creation (data-model §5). */
