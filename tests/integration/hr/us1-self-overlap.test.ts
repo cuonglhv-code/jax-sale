@@ -15,10 +15,13 @@ describe("hr US1: self-overlap guard", () => {
     const client = await hrClientFor("teacherQ1");
     const claims = await assertPermission(client, "hrRequest.submit");
 
+    // Thu-Fri / Fri-Sat (not Mon/Wed) — teacher.q1 teaches Monday/Wednesday sessions (seed), so a
+    // Mon/Wed range would now ALSO require a cover nomination (US4); this test isolates the
+    // self-overlap guard from that concern.
     const first = await submitRequestCore(client, claims, {
       requestType: "annual_leave",
-      startDate: "2026-10-05",
-      endDate: "2026-10-06",
+      startDate: "2026-10-08",
+      endDate: "2026-10-09",
       dayPart: "full",
     });
 
@@ -26,8 +29,8 @@ describe("hr US1: self-overlap guard", () => {
       await expect(
         submitRequestCore(client, claims, {
           requestType: "annual_leave",
-          startDate: "2026-10-06",
-          endDate: "2026-10-07",
+          startDate: "2026-10-09",
+          endDate: "2026-10-10",
           dayPart: "full",
         }),
       ).rejects.toThrow(DomainError);
@@ -36,7 +39,7 @@ describe("hr US1: self-overlap guard", () => {
         .from("hr_request")
         .select("id", { count: "exact", head: true })
         .eq("submitter_id", claims.employeeId)
-        .eq("start_date", "2026-10-06");
+        .eq("start_date", "2026-10-09");
       expect(rejectedProbe.count ?? 0).toBe(0);
     } finally {
       await serviceRoleClient().from("hr_request").update({ status: "cancelled" }).eq("id", first.id);

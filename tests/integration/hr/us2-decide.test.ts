@@ -17,10 +17,12 @@ describe("hr US2: decide (approve/reject)", () => {
     const teacherClient = await hrClientFor("teacherQ1");
     const teacherClaims = await assertPermission(teacherClient, "hrRequest.submit");
 
+    // Thu-Fri (not Mon/Wed) — teacher.q1 teaches Monday/Wednesday sessions (seed), so a Mon/Wed
+    // range would now ALSO require a cover nomination (US4), which this test is not exercising.
     const request = await submitRequestCore(teacherClient, teacherClaims, {
       requestType: "annual_leave",
-      startDate: "2026-11-02",
-      endDate: "2026-11-03",
+      startDate: "2026-11-05",
+      endDate: "2026-11-06",
       dayPart: "full",
     });
 
@@ -107,10 +109,11 @@ describe("hr US2: decide (approve/reject)", () => {
     const teacherClient = await hrClientFor("teacherQ1");
     const teacherClaims = await assertPermission(teacherClient, "hrRequest.submit");
 
+    // Tuesday (not Mon/Wed) — see the comment on the first test in this file.
     const request = await submitRequestCore(teacherClient, teacherClaims, {
       requestType: "annual_leave",
-      startDate: "2026-11-09",
-      endDate: "2026-11-09",
+      startDate: "2026-11-10",
+      endDate: "2026-11-10",
       dayPart: "full",
     });
 

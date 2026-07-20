@@ -1,9 +1,40 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Claims, HrRequest, LeaveDayPart } from "@/lib/data/types";
-import type { AnnualLeaveInput } from "@/schemas/hr/submit";
+import type { ShiftSwapInput } from "@/schemas/hr/shift-swap";
 import type { DecideRequestInput } from "@/schemas/hr/decide";
+import type { CoverNominationInput } from "@/schemas/hr/cover";
+import type { SubmitInput } from "@/lib/domain/hr-forms";
 import { countWorkingDays } from "@/lib/hr/working-days";
+import { resolveAffectedSessions } from "@/lib/hr/conflict";
+import { listActiveClassesForTeacher, toConflictClass } from "@/services/class.service";
 import { DomainError } from "@/lib/server-action";
+import { getFormDefinition, HR_FORM_REGISTRY } from "@/lib/domain/hr-forms";
+
+/**
+ * The leave-family shape shared by annual/sick/personal/unpaid leave (US1/US5) — a date-range
+ * request with day-part granularity and optional cover nominations. Distinguishing this from the
+ * money/overtime forms is a structural (payload-shape) check, not a type-name allowlist, so a
+ * future leave-family addition needs no new branch here — only a new FormDefinition (FR-002).
+ */
+interface LeaveFamilyInput {
+  requestType: string;
+  startDate: string;
+  endDate: string;
+  dayPart: LeaveDayPart;
+  covers?: readonly CoverNominationInput[];
+  note?: string;
+  reason?: string;
+  event?: string;
+}
+
+function isLeaveFamilyInput(input: SubmitInput): input is SubmitInput & LeaveFamilyInput {
+  return (
+    input.requestType === "annual_leave" ||
+    input.requestType === "sick_leave" ||
+    input.requestType === "personal_leave" ||
+    input.requestType === "unpaid_leave"
+  );
+}
 
 /** Non-terminal statuses that still hold a live date range against the ledger/timetable (§9). */
 const NON_TERMINAL_STATUSES = ["pending", "awaiting_cover", "approved"] as const;
@@ -25,6 +56,7 @@ interface RawHrRequestRow {
   decision_reason: string | null;
   supersedes_id: string | null;
   created_at: string;
+  needs_reresolution?: boolean;
 }
 
 function toHrRequest(row: RawHrRequestRow): HrRequest {
@@ -44,6 +76,7 @@ function toHrRequest(row: RawHrRequestRow): HrRequest {
     decidedAt: row.decided_at,
     decisionReason: row.decision_reason,
     supersedesId: row.supersedes_id,
+    needsReresolution: row.needs_reresolution ?? false,
     createdAt: row.created_at,
   };
 }
@@ -123,27 +156,145 @@ export interface SubmitRequestResult extends HrRequest {
   overBalanceWarning: boolean;
 }
 
+/** Read the leave year's `am_pm_boundary_time` (config-driven — research R3's caveat). */
+async function getAmPmBoundary(supabase: SupabaseClient, leaveYear: number): Promise<string> {
+  const { data, error } = await supabase
+    .from("leave_policy_config")
+    .select("am_pm_boundary_time")
+    .eq("leave_year", leaveYear)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.am_pm_boundary_time as string | undefined) ?? "12:00:00";
+}
+
 /**
- * FR-002/015/024g (US1): submit annual leave through the single-engine pipeline. Centre + submitter
- * are taken from `claims` INSIDE the `create_hr_request_with_log` RPC (never from `input`), so
- * nothing in `input` can cross a centre boundary or submit on someone else's behalf.
+ * US4 (T042): for a conflict-scoped submission (annual_leave, shift_swap, …), resolve which of the
+ * SUBMITTER's own sessions the request overlaps, and — if any — validate the caller-supplied cover
+ * nominations against them: every affected session must have exactly one nominee named, and every
+ * nominee is re-resolved (via the SAME pure resolver, called with the NOMINEE's id) to confirm they
+ * have no hard conflict at that exact class/session (FR-020) and are an active same-centre teacher.
+ * Returns the validated `{classId, sessionDate, nomineeId}[]` ready to pass into the create RPC —
+ * empty when the request affects no taught session.
  */
-export async function submitRequestCore(
+async function resolveRequiredCovers(
   supabase: SupabaseClient,
   claims: Claims,
-  input: AnnualLeaveInput,
-): Promise<SubmitRequestResult> {
-  await assertNoSelfOverlap(supabase, claims, input.startDate, input.endDate);
-  const workingDays = await computeIndicativeWorkingDays(supabase, input.startDate, input.endDate, input.dayPart);
+  startDate: string,
+  endDate: string,
+  dayPart: LeaveDayPart,
+  covers: readonly CoverNominationInput[] | undefined,
+): Promise<CoverNominationInput[]> {
+  const leaveYear = Number(startDate.slice(0, 4));
+  const [submitterClasses, holidayRows, amPmBoundary] = await Promise.all([
+    listActiveClassesForTeacher(supabase, claims.employeeId),
+    supabase.from("public_holiday").select("holiday_date"),
+    getAmPmBoundary(supabase, leaveYear),
+  ]);
+  if (holidayRows.error) throw holidayRows.error;
+  const holidays = (holidayRows.data ?? []).map((h) => h.holiday_date as string);
 
+  const affectedSessions = resolveAffectedSessions({
+    classes: submitterClasses.map(toConflictClass),
+    teacherId: claims.employeeId,
+    startDate,
+    endDate,
+    dayPart,
+    holidays,
+    amPmBoundary,
+  });
+
+  if (affectedSessions.length === 0) return [];
+
+  if (!covers || covers.length === 0) {
+    throw new DomainError(
+      "Yêu cầu này trùng với buổi dạy của bạn. Vui lòng đề cử giáo viên dạy thay trước khi gửi yêu cầu.",
+    );
+  }
+
+  const coverBySession = new Map(covers.map((c) => [`${c.classId}:${c.sessionDate}`, c]));
+  for (const session of affectedSessions) {
+    const key = `${session.classId}:${session.sessionDate}`;
+    if (!coverBySession.has(key)) {
+      throw new DomainError(
+        `Vui lòng đề cử giáo viên dạy thay cho buổi học ngày ${session.sessionDate}.`,
+      );
+    }
+  }
+
+  // Re-validate EVERY nominee (not just the ones matching an affected session, since the caller may
+  // have named additional class/session pairs — e.g. shift_swap's standalone use, or an attempted
+  // hard-conflict bypass) — every nominee must be a same-centre active teacher with no hard
+  // conflict at their OWN named session, resolved via the SAME pure resolver called with the
+  // nominee's id.
+  const nomineeClassesCache = new Map<string, Awaited<ReturnType<typeof listActiveClassesForTeacher>>>();
+  for (const cover of covers) {
+    const { data: nominee, error: nomineeError } = await supabase
+      .from("employees")
+      .select("id, centre_id, is_active, app_role")
+      .eq("id", cover.nomineeId)
+      .maybeSingle();
+    if (nomineeError) throw nomineeError;
+    if (
+      !nominee ||
+      !nominee.is_active ||
+      nominee.app_role !== "teacher" ||
+      nominee.centre_id !== claims.centreId
+    ) {
+      throw new DomainError("Giáo viên dạy thay phải thuộc cùng trung tâm và đang hoạt động.");
+    }
+
+    let nomineeClasses = nomineeClassesCache.get(cover.nomineeId);
+    if (!nomineeClasses) {
+      nomineeClasses = await listActiveClassesForTeacher(supabase, cover.nomineeId);
+      nomineeClassesCache.set(cover.nomineeId, nomineeClasses);
+    }
+
+    const nomineeConflicts = resolveAffectedSessions({
+      classes: nomineeClasses.map(toConflictClass),
+      teacherId: cover.nomineeId,
+      startDate: cover.sessionDate,
+      endDate: cover.sessionDate,
+      dayPart: "full",
+      holidays,
+      amPmBoundary,
+    });
+    if (nomineeConflicts.length > 0) {
+      throw new DomainError(
+        `Giáo viên được đề cử đang có lịch dạy trùng vào ngày ${cover.sessionDate}, không thể nhận dạy thay.`,
+      );
+    }
+  }
+
+  return [...covers];
+}
+
+/** Shared tail of submitRequestCore: create RPC call, audit, return — everything after cover validation. */
+async function createAndAuditRequest(
+  supabase: SupabaseClient,
+  params: {
+    requestType: string;
+    startDate: string | null;
+    endDate: string | null;
+    dayPart: LeaveDayPart | null;
+    workingDays: number | null;
+    amount?: number | null;
+    payload: Record<string, unknown>;
+    covers: readonly CoverNominationInput[];
+  },
+): Promise<HrRequest> {
   const { data, error } = await supabase.rpc("create_hr_request_with_log", {
-    p_request_type: input.requestType,
-    p_start_date: input.startDate,
-    p_end_date: input.endDate,
-    p_day_part: input.dayPart,
-    p_working_days: workingDays,
-    p_amount: null,
-    p_payload: input.note ? { note: input.note } : {},
+    p_request_type: params.requestType,
+    p_start_date: params.startDate,
+    p_end_date: params.endDate,
+    p_day_part: params.dayPart,
+    p_working_days: params.workingDays,
+    p_amount: params.amount ?? null,
+    p_payload: params.payload,
+    p_covers: params.covers.map((c) => ({
+      class_id: c.classId,
+      session_date: c.sessionDate,
+      nominee_id: c.nomineeId,
+    })),
   });
 
   if (error) throw new DomainError(error.message);
@@ -161,12 +312,178 @@ export async function submitRequestCore(
     console.error("[audit] hrRequest.submit failed to log", auditError);
   }
 
+  return request;
+}
+
+/**
+ * US4 (T044): submit a shift-swap through the single-engine pipeline. Unlike the leave family,
+ * shift_swap has no date range for the resolver to derive affected sessions from — the submitter
+ * directly names the ONE class/session/nominee (FR-021, data-model §10: payload = `note` only). The
+ * nominee is still re-validated the SAME way (same-centre active teacher, no hard conflict at that
+ * session) via the shared resolver, called with the nominee's id.
+ */
+async function submitShiftSwap(
+  supabase: SupabaseClient,
+  claims: Claims,
+  input: ShiftSwapInput,
+): Promise<SubmitRequestResult> {
+  const leaveYear = Number(input.cover.sessionDate.slice(0, 4));
+  const [holidayRows, amPmBoundary] = await Promise.all([
+    supabase.from("public_holiday").select("holiday_date"),
+    getAmPmBoundary(supabase, leaveYear),
+  ]);
+  if (holidayRows.error) throw holidayRows.error;
+  const holidays = (holidayRows.data ?? []).map((h) => h.holiday_date as string);
+
+  const { data: nominee, error: nomineeError } = await supabase
+    .from("employees")
+    .select("id, centre_id, is_active, app_role")
+    .eq("id", input.cover.nomineeId)
+    .maybeSingle();
+  if (nomineeError) throw nomineeError;
+  if (!nominee || !nominee.is_active || nominee.app_role !== "teacher" || nominee.centre_id !== claims.centreId) {
+    throw new DomainError("Giáo viên dạy thay phải thuộc cùng trung tâm và đang hoạt động.");
+  }
+
+  const nomineeClasses = await listActiveClassesForTeacher(supabase, input.cover.nomineeId);
+  const nomineeConflicts = resolveAffectedSessions({
+    classes: nomineeClasses.map(toConflictClass),
+    teacherId: input.cover.nomineeId,
+    startDate: input.cover.sessionDate,
+    endDate: input.cover.sessionDate,
+    dayPart: "full",
+    holidays,
+    amPmBoundary,
+  });
+  if (nomineeConflicts.length > 0) {
+    throw new DomainError(
+      `Giáo viên được đề cử đang có lịch dạy trùng vào ngày ${input.cover.sessionDate}, không thể nhận dạy thay.`,
+    );
+  }
+
+  const request = await createAndAuditRequest(supabase, {
+    requestType: input.requestType,
+    startDate: null,
+    endDate: null,
+    dayPart: null,
+    workingDays: null,
+    payload: input.note ? { note: input.note } : {},
+    covers: [input.cover],
+  });
+
+  return { ...request, overBalanceWarning: false };
+}
+
+/** Payload fields carried by leave-family inputs, minus the promoted columns (data-model §10). */
+function leaveFamilyPayload(input: SubmitInput & LeaveFamilyInput): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  if (input.note) payload.note = input.note;
+  if (input.reason) payload.reason = input.reason;
+  if (input.event) payload.event = input.event;
+  return payload;
+}
+
+/**
+ * US1 (T020a/029) + US4 (T042) + US5 (T047): submit a leave-family request (annual/sick/personal/
+ * unpaid leave) — shared date-range core. Only `annual_leave`'s FormDefinition declares
+ * `sideEffect: "draw_annual_balance"` (FR-007/FR-014), so the over-balance warning is computed ONLY
+ * for that type; sick/personal/unpaid never touch the balance, at submission or at approval
+ * (`approve_request`'s own `request_type = 'annual_leave'` guard is the authoritative enforcement —
+ * this is display-only, indicative-at-submit behaviour, data-model §10).
+ */
+async function submitLeaveFamily(
+  supabase: SupabaseClient,
+  claims: Claims,
+  input: SubmitInput & LeaveFamilyInput,
+): Promise<SubmitRequestResult> {
+  await assertNoSelfOverlap(supabase, claims, input.startDate, input.endDate);
+  const workingDays = await computeIndicativeWorkingDays(supabase, input.startDate, input.endDate, input.dayPart);
+
+  const definition = getFormDefinition(input.requestType as never);
+  const covers = definition.conflictScoped
+    ? await resolveRequiredCovers(supabase, claims, input.startDate, input.endDate, input.dayPart, input.covers)
+    : [];
+
+  const request = await createAndAuditRequest(supabase, {
+    requestType: input.requestType,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    dayPart: input.dayPart,
+    workingDays,
+    payload: leaveFamilyPayload(input),
+    covers,
+  });
+
   // T029: over-balance warning — indicative only, read AFTER creation so it never blocks the write.
-  const leaveYear = Number(input.startDate.slice(0, 4));
-  const balance = await getIndicativeAnnualBalanceCore(supabase, claims.employeeId, leaveYear);
-  const overBalanceWarning = balance !== null && workingDays > balance.remainingDays;
+  // Only annual_leave draws the balance (FR-007/FR-014); other leave-family types never warn.
+  let overBalanceWarning = false;
+  if (definition.sideEffect === "draw_annual_balance") {
+    const leaveYear = Number(input.startDate.slice(0, 4));
+    const balance = await getIndicativeAnnualBalanceCore(supabase, claims.employeeId, leaveYear);
+    overBalanceWarning = balance !== null && workingDays > balance.remainingDays;
+  }
 
   return { ...request, overBalanceWarning };
+}
+
+/**
+ * US5 (T047): submit a non-leave-family, non-shift-swap request — overtime (no dates) or a money
+ * form (salary_advance/purchase — no dates; business_travel — has a date range but is explicitly
+ * NOT conflict-scoped per data-model §10, so no cover resolver runs and no self-overlap/working-days
+ * logic applies, since it isn't an absence from teaching). No leave-balance interaction for any of
+ * these types.
+ */
+async function submitNonLeaveRequest(
+  supabase: SupabaseClient,
+  input: Exclude<SubmitInput, LeaveFamilyInput | ShiftSwapInput>,
+): Promise<SubmitRequestResult> {
+  const asRecord = input as unknown as Record<string, unknown>;
+  const startDate = typeof asRecord.startDate === "string" ? asRecord.startDate : null;
+  const endDate = typeof asRecord.endDate === "string" ? asRecord.endDate : null;
+  const amount = typeof asRecord.amount === "number" ? asRecord.amount : null;
+
+  const payload: Record<string, unknown> = {};
+  for (const key of ["date", "hours", "justification", "repaymentIntent", "item", "vendor", "destination"]) {
+    if (asRecord[key] !== undefined) payload[key] = asRecord[key];
+  }
+
+  const request = await createAndAuditRequest(supabase, {
+    requestType: input.requestType,
+    startDate,
+    endDate,
+    dayPart: null,
+    workingDays: null,
+    amount,
+    payload,
+    covers: [],
+  });
+
+  return { ...request, overBalanceWarning: false };
+}
+
+/**
+ * FR-002/015/024g (US1) + FR-021 (US4) + US5: submit a request through the single-engine pipeline.
+ * Centre + submitter are taken from `claims` INSIDE the `create_hr_request_with_log` RPC (never from
+ * `input`), so nothing in `input` can cross a centre boundary or submit on someone else's behalf.
+ * Dispatches by request SHAPE, not an exhaustive per-type switch: the leave family resolves affected
+ * sessions from a date range (US4, T042); `shift_swap` (US4, T044) names its one class/session/
+ * nominee directly (no date range); everything else (overtime, money forms) has no leave semantics
+ * at all (US5, T047).
+ */
+export async function submitRequestCore(
+  supabase: SupabaseClient,
+  claims: Claims,
+  input: SubmitInput,
+): Promise<SubmitRequestResult> {
+  if (input.requestType === "shift_swap") {
+    return submitShiftSwap(supabase, claims, input as ShiftSwapInput);
+  }
+
+  if (isLeaveFamilyInput(input)) {
+    return submitLeaveFamily(supabase, claims, input);
+  }
+
+  return submitNonLeaveRequest(supabase, input as Exclude<SubmitInput, LeaveFamilyInput | ShiftSwapInput>);
 }
 
 /** "My requests" list (US1 acceptance: a submitted request appears here) — own-submitter scoped. */
@@ -174,7 +491,7 @@ export async function listMyRequestsCore(supabase: SupabaseClient, claims: Claim
   const { data, error } = await supabase
     .from("hr_request")
     .select(
-      "id, request_type, submitter_id, centre_id, status, start_date, end_date, day_part, working_days, amount, payload, decided_by, decided_at, decision_reason, supersedes_id, created_at",
+      "id, request_type, submitter_id, centre_id, status, start_date, end_date, day_part, working_days, amount, payload, decided_by, decided_at, decision_reason, supersedes_id, created_at, needs_reresolution",
     )
     .eq("submitter_id", claims.employeeId)
     .order("created_at", { ascending: false });
@@ -195,7 +512,7 @@ export async function listApprovalQueueCore(supabase: SupabaseClient, claims: Cl
   let query = supabase
     .from("hr_request")
     .select(
-      "id, request_type, submitter_id, centre_id, status, start_date, end_date, day_part, working_days, amount, payload, decided_by, decided_at, decision_reason, supersedes_id, created_at",
+      "id, request_type, submitter_id, centre_id, status, start_date, end_date, day_part, working_days, amount, payload, decided_by, decided_at, decision_reason, supersedes_id, created_at, needs_reresolution",
     )
     .in("status", ["pending", "awaiting_cover"])
     .order("start_date", { ascending: true, nullsFirst: false });
@@ -278,11 +595,25 @@ export async function decideRequestCore(
     if (error) throw new DomainError(error.message);
     const request = toHrRequest(data as RawHrRequestRow);
 
+    // T048 (US5, FR-025): the three money forms (salary_advance/purchase/business_travel) must
+    // notify accounting (super_admin in v1) on approval — the notification infra (Resend, email
+    // templates) doesn't exist yet (US7, Phase 9), so this does NOT send anything today. Flagging
+    // `isMoneyForm`/`amount` in the audit metadata now gives the eventual US7 notification hook
+    // (`notification.service.ts`, wired after this same audit write per tasks.md Phase 9) something
+    // to key off without a second read of the form definition. DO NOT fake an email here.
+    const definition = HR_FORM_REGISTRY[request.requestType];
+    const auditMetadata: Record<string, unknown> = { workingDays: request.workingDays };
+    if (definition?.isMoneyForm) {
+      auditMetadata.isMoneyForm = true;
+      auditMetadata.amount = request.amount;
+      // TODO(US7): notify accounting (super_admin) that a money-form request was approved.
+    }
+
     const { error: auditError } = await supabase.rpc("write_audit_log", {
       p_action: "hrRequest.approve",
       p_entity_type: "hr_request",
       p_entity_id: request.id,
-      p_metadata: { workingDays: request.workingDays },
+      p_metadata: auditMetadata,
     });
     if (auditError) console.error("[audit] hrRequest.approve failed to log", auditError);
 

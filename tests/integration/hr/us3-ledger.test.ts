@@ -15,11 +15,13 @@ describe("hr US3: ledger consume/restore", () => {
     const teacherClient = await hrClientFor("teacherQ1");
     const claims = await assertPermission(teacherClient, "hrRequest.submit");
 
-    // Non-overlapping with any other seeded/probe annual-leave date range for teacher.q1.
+    // Non-overlapping with any other seeded/probe annual-leave date range for teacher.q1. Thu-Fri
+    // (not Mon/Wed) — teacher.q1 teaches Monday/Wednesday sessions (seed), so a Mon/Wed range would
+    // now ALSO require a cover nomination (US4), which this test is not exercising.
     const request = await submitRequestCore(teacherClient, claims, {
       requestType: "annual_leave",
-      startDate: "2026-10-05",
-      endDate: "2026-10-06",
+      startDate: "2026-10-15",
+      endDate: "2026-10-16",
       dayPart: "full",
     });
 

@@ -16,6 +16,7 @@ export const SEEDED_USERS = {
   saleQ1: "sale.q1@jaxtina.test",
   saleQ3: "sale.q3@jaxtina.test",
   teacherQ1: "teacher.q1@jaxtina.test",
+  teacher2Q1: "teacher2.q1@jaxtina.test", // US4 (T039): second Q1 teacher — a real cover-nominee
   deactivatedQ1: "deactivated.q1@jaxtina.test",
 } as const;
 
@@ -24,6 +25,7 @@ export const SEED_CENTRE_Q3 = "00000000-0000-4000-8000-000000000002";
 export const SEED_DEPT_TEACHER = "00000000-0000-4000-8000-0000000000d4";
 export const SEED_DEPT_SALES = "00000000-0000-4000-8000-0000000000d2";
 export const SEED_EMPLOYEE_TEACHER_Q1 = "10000000-0000-4000-8000-000000000006";
+export const SEED_EMPLOYEE_TEACHER2_Q1 = "10000000-0000-4000-8000-000000000009";
 
 function requireEnv(name: string): string {
   const v = process.env[name];

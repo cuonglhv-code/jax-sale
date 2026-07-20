@@ -112,13 +112,13 @@ still excluded; a centre-A manager cannot approve a centre-B row.
 department target; a cross-centre target is rejected; a NULL target shows "Chưa đặt mục tiêu".
 
 ### Tests (write FIRST, MUST fail; live DB, no mocks) ⚠️
-- [ ] T026 [P] [US2] Personal-target proof: set within own centre works; cross-centre rejected; a manager cannot write `actual` (trigger); NULL clears → not_set; zero target rejected in `tests/integration/kpi/personal-target.test.ts` (AC-2.1/2.2/2.5, D-ZERO)
-- [ ] T027 [P] [US2] Department-target proof: `super_admin` succeeds; every other role denied; not centre-confined in `tests/integration/kpi/department-target.test.ts` (AC-2.3/2.4, SC-005)
+- [X] T026 [P] [US2] Personal-target proof: set within own centre works; cross-centre rejected; a manager cannot write `actual` (trigger); NULL clears → not_set; zero target rejected in `tests/integration/kpi/personal-target.test.ts` (AC-2.1/2.2/2.5, D-ZERO)
+- [X] T027 [P] [US2] Department-target proof: `super_admin` succeeds; every other role denied; not centre-confined in `tests/integration/kpi/department-target.test.ts` (AC-2.3/2.4, SC-005)
 
 ### Implementation
-- [ ] T028 [US2] `setPersonalTargetCore` + `setDepartmentTargetCore` in `src/services/kpi/kpi.service.ts` (upsert/clear `target`; audit) (FR-TARGET-01..04)
-- [ ] T029 [US2] `setPersonalTarget` + `setDepartmentTarget` server actions (canonical pipeline) in `src/app/actions/kpi/` per [contracts/kpi.actions.md](./contracts/kpi.actions.md)
-- [ ] T030 [US2] `TargetEditor.tsx` (client) — manager sets per-consultant targets; admin sets department targets; NULL/clear support in `src/app/(app)/hieu-suat/` (AC-2.1/2.3/2.5)
+- [X] T028 [US2] `setPersonalTargetCore` + `setDepartmentTargetCore` in `src/services/kpi/kpi.service.ts` (upsert/clear `target`; audit) (FR-TARGET-01..04)
+- [X] T029 [US2] `setPersonalTarget` + `setDepartmentTarget` server actions (canonical pipeline) in `src/app/actions/kpi/` per [contracts/kpi.actions.md](./contracts/kpi.actions.md)
+- [X] T030 [US2] `TargetEditor.tsx` (client) — manager sets per-consultant targets; admin sets department targets; NULL/clear support in `src/app/(app)/hieu-suat/` (AC-2.1/2.3/2.5)
 
 **Checkpoint**: targets drive attainment; NULL renders "not set", never 0%.
 
@@ -132,12 +132,12 @@ department target; a cross-centre target is rejected; a NULL target shows "Chưa
 beyond; only approved actuals appear.
 
 ### Tests (write FIRST, MUST fail; live DB, no mocks) ⚠️
-- [ ] T031 [P] [US3] Tiered-read proof (two-centre seed): consultant sees own only; centre mgr/admin see own centre; super_admin all; teacher none in `tests/integration/kpi/tiered-read.test.ts` (AC-3.1/3.2/3.3/3.4, SC-006)
-- [ ] T032 [P] [US3] Approved-only aggregation: `pending`/`rejected` excluded from dashboard aggregates; quarter/year rollup sums correct in `tests/integration/kpi/aggregation.test.ts` (AC-3.7, SC-009)
+- [X] T031 [P] [US3] Tiered-read proof (two-centre seed): consultant sees own only; centre mgr/admin see own centre; super_admin all; teacher none in `tests/integration/kpi/tiered-read.test.ts` (AC-3.1/3.2/3.3/3.4, SC-006)
+- [X] T032 [P] [US3] Approved-only aggregation: `pending`/`rejected` excluded from dashboard aggregates; quarter/year rollup sums correct in `tests/integration/kpi/aggregation.test.ts` (AC-3.7, SC-009)
 
 ### Implementation
-- [ ] T033 [US3] `getDashboard` read action (`rpc('kpi_dashboard')`; assemble `KpiDashboardRow[]` with `Attainment` via the engine); return `Paginated<KpiDashboardRow>` (bounded by staff-per-period; page/limit via `pagination.ts`) in `src/app/actions/kpi/get-dashboard.ts` (FR-CALC-03)
-- [ ] T034 [US3] `Dashboard.tsx` (client) — attainment by consultant/centre/department at tier; period + quarter/year selector; vocabulary-backed states (never 0% for not_set) in `src/app/(app)/hieu-suat/` (AC-3.5/3.6, SC-002)
+- [X] T033 [US3] `getDashboard` read action (`rpc('kpi_dashboard')`; assemble `KpiDashboardRow[]` with `Attainment` via the engine); return `Paginated<KpiDashboardRow>` (bounded by staff-per-period; page/limit via `pagination.ts`) in `src/app/actions/kpi/get-dashboard.ts` (FR-CALC-03)
+- [X] T034 [US3] `Dashboard.tsx` (client) — attainment by consultant/centre/department at tier; period + quarter/year selector; vocabulary-backed states (never 0% for not_set) in `src/app/(app)/hieu-suat/` (AC-3.5/3.6, SC-002)
 
 **Checkpoint**: every tier sees exactly its scope; pending/rejected excluded.
 
@@ -152,9 +152,9 @@ leak — proven against the real DB. Ties together the per-story proofs above.
 seed.
 
 ### Tests (write FIRST, MUST fail; live DB, no mocks) ⚠️
-- [ ] T035 [P] [US6] Permission matrix: each of the four keys grants exactly its roles; an unauthorized caller of each is rejected (record/approve/personal-target/department-target) in `tests/integration/kpi/permission-matrix.test.ts` (AC-6.1, SC-003/005)
-- [ ] T036 [P] [US6] Audit + status-log completeness: every sensitive write (record/edit/approve/reject/setTarget/clear) emits an `audit_log` row with changed fields; every status transition writes a status-log in `tests/integration/kpi/audit-completeness.test.ts` (AC-6.4, SC-007)
-- [ ] T037 [P] [US6] Two-centre isolation E2E: a full A/B flow proves no cross-tier read/write/approve leak on any table in `tests/integration/kpi/isolation-e2e.test.ts` (AC-6.2/6.3, SC-004/006)
+- [X] T035 [P] [US6] Permission matrix: each of the four keys grants exactly its roles; an unauthorized caller of each is rejected (record/approve/personal-target/department-target) in `tests/integration/kpi/permission-matrix.test.ts` (AC-6.1, SC-003/005)
+- [X] T036 [P] [US6] Audit + status-log completeness: every sensitive write (record/edit/approve/reject/setTarget/clear) emits an `audit_log` row with changed fields; every status transition writes a status-log in `tests/integration/kpi/audit-completeness.test.ts` (AC-6.4, SC-007)
+- [X] T037 [P] [US6] Two-centre isolation E2E: a full A/B flow proves no cross-tier read/write/approve leak on any table in `tests/integration/kpi/isolation-e2e.test.ts` (AC-6.2/6.3, SC-004/006)
 
 **Checkpoint**: the NON-NEGOTIABLE security model is proven green — the P1 gate is closed.
 
@@ -168,11 +168,11 @@ seed.
 `sale_consultant` has no leaderboard surface.
 
 ### Tests (write FIRST, MUST fail; live DB, no mocks) ⚠️
-- [ ] T038 [P] [US4] Leaderboard proof: tier-scoped ranking (mgr=own centre, super_admin=network), deterministic tie-break by name, approved-only, consultant denied in `tests/integration/kpi/leaderboard.test.ts` (AC-4.1/4.2/4.3/4.4)
+- [X] T038 [P] [US4] Leaderboard proof: tier-scoped ranking (mgr=own centre, super_admin=network), deterministic tie-break by name, approved-only, consultant denied in `tests/integration/kpi/leaderboard.test.ts` (AC-4.1/4.2/4.3/4.4)
 
 ### Implementation
-- [ ] T039 [US4] `getLeaderboard` read action (`rpc('kpi_leaderboard')`; deny `sale_consultant`; return `Paginated<RankedEntry>` / top-N via `pagination.ts`) in `src/app/actions/kpi/get-leaderboard.ts` (AC-4.3, FR-CALC-03)
-- [ ] T040 [US4] `Leaderboard.tsx` (client) — ranked list, approved-only, per tier in `src/app/(app)/hieu-suat/` (AC-4.1/4.2)
+- [X] T039 [US4] `getLeaderboard` read action (`rpc('kpi_leaderboard')`; deny `sale_consultant`; return `Paginated<RankedEntry>` / top-N via `pagination.ts`) in `src/app/actions/kpi/get-leaderboard.ts` (AC-4.3, FR-CALC-03)
+- [X] T040 [US4] `Leaderboard.tsx` (client) — ranked list, approved-only, per tier in `src/app/(app)/hieu-suat/` (AC-4.1/4.2)
 
 **Checkpoint**: managers/admins get rankings; consultants do not.
 
@@ -186,12 +186,12 @@ seed.
 Vietnamese labels + correct diacritics.
 
 ### Tests (write FIRST, MUST fail; live DB, no mocks) ⚠️
-- [ ] T041 [P] [US5] Export proof: tier-confined (no row beyond the caller's tier); Vietnamese headers; approved-only figures in `tests/integration/kpi/export.test.ts` (AC-5.1/5.2/5.3)
+- [X] T041 [P] [US5] Export proof: tier-confined (no row beyond the caller's tier); Vietnamese headers; approved-only figures in `tests/integration/kpi/export.test.ts` (AC-5.1/5.2/5.3)
 
 ### Implementation
-- [ ] T042 [P] [US5] CSV builder (Vietnamese headers, tier rows, period/scope stamp) in `src/lib/kpi/export/csv.ts` (AC-5.1/5.3/5.4)
-- [ ] T043 [P] [US5] `KpiReportDocument.tsx` (@react-pdf one-page summary; reuse #002 `fonts.ts` for diacritics) in `src/lib/kpi/export/` (AC-5.3)
-- [ ] T044 [US5] `exportReport` action (assemble CSV + PDF from the caller's tier rows; stamp period/scope/timestamp) + `ExportButton.tsx` in `src/app/actions/kpi/export-report.ts` and `src/app/(app)/hieu-suat/` (AC-5.1/5.4)
+- [X] T042 [P] [US5] CSV builder (Vietnamese headers, tier rows, period/scope stamp) in `src/lib/kpi/export/csv.ts` (AC-5.1/5.3/5.4)
+- [X] T043 [P] [US5] `KpiReportDocument.tsx` (@react-pdf one-page summary; reuse #002 `fonts.ts` for diacritics) in `src/lib/kpi/export/` (AC-5.3)
+- [X] T044 [US5] `exportReport` action (assemble CSV + PDF from the caller's tier rows; stamp period/scope/timestamp) + `ExportButton.tsx` in `src/app/actions/kpi/export-report.ts` and `src/app/(app)/hieu-suat/` (AC-5.1/5.4)
 
 **Checkpoint**: CSV + PDF export, strictly within the caller's tier.
 
@@ -199,12 +199,12 @@ Vietnamese labels + correct diacritics.
 
 ## Phase 10: Polish & Cross-Cutting
 
-- [ ] T045 [P] Vietnamese-only audit: no raw enum id / English system string / misleading 0% on any KPI screen or export (SC-011)
-- [ ] T046 [P] Coverage ≥ 80% for the attainment engine + all tenancy/permission/approval boundaries; actual-only, NULL-target, approved-only, cross-tier invariants each covered (SC-010)
-- [ ] T047 [P] Enforce size limits (files < 800, functions < 50, nesting ≤ 4) + immutable patterns across the new KPI modules (constitution Engineering Standards)
-- [ ] T048 Run [quickstart.md](./quickstart.md) happy-path + validation-table scenarios; record results (SC-001..009)
-- [ ] T049 Final migration-numbering check: the three KPI migrations sort after the highest existing (incl. #002's) before merge (plan coordination note)
-- [ ] T050 [P] Seed a representative volume (~tens of thousands of `personal_kpis` rows across ~10 centres over multiple periods) and assert dashboard + leaderboard reads stay **paginated and N+1-free** within a reasonable budget in `tests/integration/kpi/volume.test.ts` (SC-008)
+- [X] T045 [P] Vietnamese-only audit: no raw enum id / English system string / misleading 0% on any KPI screen or export (SC-011)
+- [X] T046 [P] Coverage ≥ 80% for the attainment engine + all tenancy/permission/approval boundaries; actual-only, NULL-target, approved-only, cross-tier invariants each covered (SC-010)
+- [X] T047 [P] Enforce size limits (files < 800, functions < 50, nesting ≤ 4) + immutable patterns across the new KPI modules (constitution Engineering Standards)
+- [X] T048 Run [quickstart.md](./quickstart.md) happy-path + validation-table scenarios; record results (SC-001..009)
+- [X] T049 Final migration-numbering check: the three KPI migrations sort after the highest existing (incl. #002's) before merge (plan coordination note). VERIFIED: 20260716140001-3 sort correctly between #002's 130001 and #004's later 130001+/20260720xxx block; no collision; all 21 project migrations apply cleanly in order (confirmed via live `supabase_migrations.schema_migrations`)
+- [X] T050 [P] Seed a representative volume (~tens of thousands of `personal_kpis` rows across ~10 centres over multiple periods) and assert dashboard + leaderboard reads stay **paginated and N+1-free** within a reasonable budget in `tests/integration/kpi/volume.test.ts` (SC-008)
 
 ---
 

@@ -19,9 +19,10 @@ export const MEDICAL_BUCKET = "medical-documents";
 export const HR_SEED = {
   leaveYear: 2026,
   policyConfigId: "40000000-0000-4000-8000-000000000001",
-  classQ1Foundation: "40000000-0000-4000-8000-0000000000d1",
-  classQ1Intermediate: "40000000-0000-4000-8000-0000000000d2",
+  classQ1Foundation: "40000000-0000-4000-8000-0000000000d1", // teacher.q1, Monday 18:00-20:00
+  classQ1Intermediate: "40000000-0000-4000-8000-0000000000d2", // teacher.q1, Wednesday 18:00-20:00
   classQ3: "40000000-0000-4000-8000-0000000000d3",
+  classQ1Teacher2: "40000000-0000-4000-8000-0000000000d4", // teacher2.q1, Tuesday 18:00-20:00
   balanceTeacherQ1: "40000000-0000-4000-8000-0000000000e1",
   balanceSaleQ1: "40000000-0000-4000-8000-0000000000e2",
   requestAnnualLeave: "40000000-0000-4000-8000-0000000000f1", // teacher.q1, pending
@@ -40,6 +41,7 @@ export const HR_ROLE_EMAIL = {
   saleQ1: SEEDED_USERS.saleQ1,
   saleQ3: SEEDED_USERS.saleQ3,
   teacherQ1: SEEDED_USERS.teacherQ1,
+  teacher2Q1: SEEDED_USERS.teacher2Q1,
 } as const;
 
 export type HrRole = keyof typeof HR_ROLE_EMAIL;

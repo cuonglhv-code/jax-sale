@@ -137,18 +137,18 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 ### Tests (write first, must fail)
 
-- [ ] T038 [P] [US4] Unit: conflict resolver (overlap, holiday exclusion, half-day AM/PM, recurrence edges, inactive class) in `tests/unit/hr/conflict.test.ts`
-- [ ] T039 [P] [US4] Integration: conflict → cover required + hard-conflict nominee blocked + accept → pending + approve gated, in `tests/integration/hr/us4-cover.test.ts`
-- [ ] T039a [P] [US4] Integration: a cover declined AFTER approval, and a class/session deactivated after cover was arranged, each → cover released, request flagged for re-resolution, manager+submitter notified, in `tests/integration/hr/us4-cover-reresolution.test.ts`
+- [X] T038 [P] [US4] Unit: conflict resolver (overlap, holiday exclusion, half-day AM/PM, recurrence edges, inactive class) in `tests/unit/hr/conflict.test.ts`
+- [X] T039 [P] [US4] Integration: conflict → cover required + hard-conflict nominee blocked + accept → pending + approve gated, in `tests/integration/hr/us4-cover.test.ts`
+- [X] T039a [P] [US4] Integration: a cover declined AFTER approval, and a class/session deactivated after cover was arranged, each → cover released, request flagged for re-resolution, manager+submitter notified, in `tests/integration/hr/us4-cover-reresolution.test.ts`
 
 ### Implementation
 
-- [ ] T040 [US4] Pure conflict resolver `src/lib/hr/conflict.ts` (`resolveAffectedSessions(...)`)
-- [ ] T041 [US4] `upsert-class.ts` action + `upsert_class` RPC (same-centre teacher guard) + `useClasses` hook + `/nhan-su/lich-day` timetable admin UI
-- [ ] T042 [US4] Extend `create_hr_request_with_log` + `submitRequestCore` to create `cover_assignment` rows, set `awaiting_cover`, and block a hard-conflicting nominee (same-centre pool)
-- [ ] T043 [US4] `respond-cover.ts` action + `respond_cover` RPC + `useMyCoverNominations` hook + accept/decline UI
-- [ ] T043a [US4] Post-approval cover disruption in `src/services/cover.service.ts` + migration `supabase/migrations/20260717130008_hr_fn_cover_reresolution.sql`: `release_cover_and_flag(cover_id)` RPC sets the `cover_assignment` → `released`, marks the owning request for re-resolution, writes history + audit; wire `upsert_class` (T041) so deactivating a class triggers it for affected accepted covers; non-fatal notify (FR-022) — depends on T041, T042, T043
-- [ ] T044 [US4] Register `shift_swap` `FormDefinition` reusing the cover mechanism standalone (no leave)
+- [X] T040 [US4] Pure conflict resolver `src/lib/hr/conflict.ts` (`resolveAffectedSessions(...)`)
+- [X] T041 [US4] `upsert-class.ts` action + `upsert_class` RPC (same-centre teacher guard) + `useClasses` hook + `/nhan-su/lich-day` timetable admin UI
+- [X] T042 [US4] Extend `create_hr_request_with_log` + `submitRequestCore` to create `cover_assignment` rows, set `awaiting_cover`, and block a hard-conflicting nominee (same-centre pool)
+- [X] T043 [US4] `respond-cover.ts` action + `respond_cover` RPC + `useMyCoverNominations` hook + accept/decline UI
+- [X] T043a [US4] Post-approval cover disruption in `src/services/cover.service.ts` + migration `supabase/migrations/20260720130005_hr_fn_cover_reresolution.sql`: `release_cover_and_flag(cover_id)` RPC sets the `cover_assignment` → `released`, marks the owning request for re-resolution (`hr_request.needs_reresolution` boolean — see migration comment for why a new RequestStatus value was rejected), writes audit; wired into `respond_cover` (decline of an already-accepted cover) and `upsert_class` (deactivating a class releases its accepted covers) — depends on T041, T042, T043. In-app notify only (no email — US7 not yet built); the `needs_reresolution` flag is the durable "notify" signal for this slice.
+- [X] T044 [US4] Register `shift_swap` `FormDefinition` reusing the cover mechanism standalone (no leave)
 
 **Checkpoint**: No approved leave can leave a taught session uncovered (SC-003).
 
@@ -161,14 +161,14 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 ### Tests (write first, must fail)
 
-- [ ] T045 [P] [US5] Integration: each of the 8 remaining types submits with correct validation + side-effect flag, in `tests/integration/hr/us5-forms.test.ts`
+- [X] T045 [P] [US5] Integration: each of the 8 remaining types submits with correct validation + side-effect flag, in `tests/integration/hr/us5-forms.test.ts`
 
 ### Implementation
 
-- [ ] T046 [P] [US5] Zod schemas for `sick_leave`, `personal_leave`, `unpaid_leave`, `overtime`, `salary_advance`, `purchase`, `business_travel` in `src/schemas/hr/`
-- [ ] T047 [US5] Register all `FormDefinition`s (fields, `requiresDocument`, `isMoneyForm`, `conflictScoped`, `sideEffect`) in `src/lib/domain/hr-forms.ts`
-- [ ] T048 [US5] Money-form accounting notification hook in `decideRequestCore` (notify super_admin-as-accounting on approval; router built to admit a future 2nd step)
-- [ ] T049 [US5] Extend the schema-driven renderer to cover all field kinds (date, number, textarea, select, file) in the picker UI
+- [X] T046 [P] [US5] Zod schemas for `sick_leave`, `personal_leave`, `unpaid_leave`, `overtime`, `salary_advance`, `purchase`, `business_travel` in `src/schemas/hr/`
+- [X] T047 [US5] Register all `FormDefinition`s (fields, `requiresDocument`, `isMoneyForm`, `conflictScoped`, `sideEffect`) in `src/lib/domain/hr-forms.ts`
+- [X] T048 [US5] Money-form accounting notification hook in `decideRequestCore` (notify super_admin-as-accounting on approval; router built to admit a future 2nd step) — TODO-flagged only; real send is US7 (notification infra doesn't exist yet)
+- [X] T049 [US5] Extend the schema-driven renderer to cover all field kinds (date, number, textarea, select, file) in the picker UI — implemented as per-type form components (`LeaveFamilyForm`, `OvertimeForm`, `SalaryAdvanceForm`, `PurchaseForm`, `BusinessTravelForm`) matching the existing hand-coded convention, not a generic field-kind renderer (file kind deferred to US6, no upload UI exists yet)
 
 **Checkpoint**: All nine forms work on the single engine.
 

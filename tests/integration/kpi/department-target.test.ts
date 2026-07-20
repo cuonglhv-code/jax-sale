@@ -48,4 +48,31 @@ describe("kpi: department target (setDepartmentTargetCore)", () => {
     });
     expect(error).not.toBeNull();
   });
+
+  it("super_admin can clear a department target (target: null deletes the row)", async () => {
+    const adminClient = await signInAs(SEEDED_USERS.superAdmin);
+    const adminClaims = await assertPermission(adminClient, "departmentKpi.setTarget");
+
+    await setDepartmentTargetCore(adminClient, adminClaims, {
+      departmentId: SEED_DEPT_SALES,
+      period,
+      metricKey: "revenue",
+      target: 30_000_000,
+    });
+    const cleared = await setDepartmentTargetCore(adminClient, adminClaims, {
+      departmentId: SEED_DEPT_SALES,
+      period,
+      metricKey: "revenue",
+      target: null,
+    });
+
+    expect(cleared.target).toBeNull();
+    const { data } = await adminClient
+      .from("department_kpi_targets")
+      .select("id")
+      .eq("department_id", SEED_DEPT_SALES)
+      .eq("period", period)
+      .eq("metric_key", "revenue");
+    expect(data ?? []).toHaveLength(0);
+  });
 });

@@ -233,3 +233,55 @@ begin
   )
   on conflict (auth_user_id) do update set is_active = excluded.is_active;
 end $$;
+
+-- ── US4 (T039): a second Q1 teacher so the cover-nomination tests have a REAL same-centre
+-- alternative teacher to nominate (the base seed only had one teacher, teacher.q1) — and a class
+-- taught by THIS teacher, so a "nominee already teaching at that time" hard-conflict scenario is
+-- provable against real data (FR-020). Additive-only; does not touch the shared seeding loop above.
+do $$
+declare
+  v_password text := crypt('Password123!', gen_salt('bf'));
+  v_id uuid := '10000000-0000-4000-8000-000000000009';
+begin
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, recovery_token, email_change_token_new, email_change
+  ) values (
+    '00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated',
+    'teacher2.q1@jaxtina.test', v_password, now(), '{"provider":"email","providers":["email"]}'::jsonb,
+    '{}'::jsonb, now(), now(), '', '', '', ''
+  )
+  on conflict (id) do nothing;
+
+  insert into auth.identities (id, provider_id, user_id, identity_data, provider, created_at, updated_at)
+  values (
+    v_id, v_id::text, v_id,
+    jsonb_build_object('sub', v_id::text, 'email', 'teacher2.q1@jaxtina.test'),
+    'email', now(), now()
+  )
+  on conflict (provider_id, provider) do nothing;
+
+  insert into public.employees (
+    id, auth_user_id, full_name, email, app_role, centre_id, department_id, is_active, avatar_color
+  ) values (
+    v_id, v_id, 'Giáo viên Q1 (2)', 'teacher2.q1@jaxtina.test', 'teacher',
+    '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000d4', true, '#5B8DEF'
+  )
+  on conflict (auth_user_id) do update set is_active = excluded.is_active;
+
+  update public.employees set hire_date = '2022-02-01', employment_type = 'full_time', contract_type = 'indefinite'
+    where id = v_id;
+end $$;
+
+-- Class taught by teacher2.q1 — every Tuesday 18:00-20:00, so tests can nominate this teacher as a
+-- cover for a Monday/Wednesday session (free) OR prove the hard-block when a leave/nomination
+-- targets a Tuesday session this teacher already teaches (FR-020).
+insert into public.class (
+  id, centre_id, course_label, teacher_id, weekday, start_time, end_time, start_date, end_date, is_active
+) values (
+  '40000000-0000-4000-8000-0000000000d4', '00000000-0000-4000-8000-000000000001',
+  'IELTS Advanced C', '10000000-0000-4000-8000-000000000009', 2, '18:00', '20:00',
+  '2026-01-06', '2026-12-20', true
+)
+on conflict (id) do nothing;

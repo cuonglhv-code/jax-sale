@@ -157,6 +157,17 @@ export const PERSONAL_LEAVE_EVENT_LABEL: Record<PersonalLeaveEvent, string> = {
   other: "Khác",
 };
 
+/** ISO weekday (1=Monday … 7=Sunday) label for the timetable admin UI (US4, T041). */
+export const WEEKDAY_LABEL: Record<number, string> = {
+  1: "Thứ Hai",
+  2: "Thứ Ba",
+  3: "Thứ Tư",
+  4: "Thứ Năm",
+  5: "Thứ Sáu",
+  6: "Thứ Bảy",
+  7: "Chủ Nhật",
+};
+
 // ── Navigation = access matrix (ONE list; spec FR-009/024b) ───────────────────
 // This is BOTH the sidebar definition AND the route-access matrix. Adding a future module = one
 // entry here (no parallel list). Only `dashboard` and `tasks` have pages in this slice; the rest

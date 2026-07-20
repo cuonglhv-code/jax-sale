@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`jax-sales` (Jaxtina) is a Next.js 16 (App Router) + React 19 + TypeScript + Supabase internal CRM/ops tool. It has three vertical slices in progress: an IELTS roadmap builder (PDF proposal generation), a sales task/Kanban board, and an HR requests module (in early foundation stage). No `README.md` exists — this file and `specs/00N-*/spec.md` are the source of truth for intent.
+`jax-sales` (Jaxtina) is a Next.js 16 (App Router) + React 19 + TypeScript + Supabase internal CRM/ops tool. It has four vertical slices in progress: an IELTS roadmap builder (PDF proposal generation), a sales task/Kanban board, a sales performance/KPI tracker (recording, approval, targets, tiered dashboard), and an HR requests module (leave submission/approval/ledger built; class-conflict-and-cover scheduling in progress). No `README.md` exists — this file and `specs/00N-*/spec.md` are the source of truth for intent.
 
 ## Commands
 
 ```bash
 npm run dev          # next dev --turbopack
 npm run build
+npm run start         # next start (serve production build)
 npm run lint          # eslint .
 npm run typecheck     # tsc --noEmit
 npm run test           # vitest run (single run)
@@ -79,9 +80,17 @@ export async function createTask(raw: unknown): Promise<ActionResult<Task>> {
 
 ### Spec-driven workflow (Spec Kit)
 
-Features are developed as slices under `specs/00N-kebab-name/` (`spec.md` → `plan.md` → `tasks.md`, plus `research.md`, `data-model.md`, `quickstart.md`, `checklists/`, `contracts/`), using the `.specify/` templates and `speckit-*` skills. Current slices: `001-foundation-auth-tenancy`, `002-ielts-roadmap-builder`, `003-sales-performance-kpi`, `004-hr-requests` (in progress — only foundation Phases 1–2 / T001–T014 built; forms, approval queue, notifications still pending), `005-ielts-summit`.
+Features are developed as slices under `specs/00N-kebab-name/` (`spec.md` → `plan.md` → `tasks.md`, plus `research.md`, `data-model.md`, `quickstart.md`, `checklists/`, `contracts/`), using the `.specify/` templates and `speckit-*` skills. Current slices: `001-foundation-auth-tenancy`, `002-ielts-roadmap-builder`, `003-sales-performance-kpi` (US1/US2/US3/US7 built — record/approve/target/dashboard; US6 security-proof tests written but not yet green — `tests/integration/kpi/{permission-matrix,audit-completeness,isolation-e2e}.test.ts`; US4 leaderboard and US5 CSV/PDF export not started), `004-hr-requests` (US1+US3+US2 built — submit/ledger/decide; US4 class-conflict-and-cover in progress, files exist but `tasks.md` T038–T044 unchecked), `005-ielts-summit`. Integration tests are named `us{N}-*.test.ts` per slice, tying each test file directly to the `tasks.md`/`spec.md` user story it proves (e.g. `tests/integration/hr/us4-cover.test.ts`).
 
-**Known inconsistency to check before resuming any slice's implementation:** `.specify/memory/constitution.md` was rewritten to v2.0.0, re-centering it around the IELTS-roadmap "presentation instrument" framing and removing prior CRM/tenancy principles from the core. The file's own sync-impact note says specs 001–004 were validated against v1.0.0 and must be re-validated against v2.0.0 before further work — so don't assume the HR foundation work still matches current governing principles without checking.
+**Known inconsistency to check before resuming any slice's implementation:** `.specify/memory/constitution.md` was rewritten to v2.0.0, re-centering it around the IELTS-roadmap "presentation instrument" framing and removing prior CRM/tenancy principles from the core. The file's own sync-impact note says specs 001–004 were validated against v1.0.0 and must be re-validated against v2.0.0 before further work — so don't assume the HR/KPI work still matches current governing principles without checking.
+
+### KPI dashboard tiering (slice #003)
+
+`getDashboard` (`src/app/actions/kpi/get-dashboard.ts`) calls `rpc('kpi_dashboard', ...)`, a `SECURITY INVOKER` Postgres function — it runs with the caller's own RLS, so tier-scoping (consultant → own rows only, centre manager/admin → own centre, super_admin → network-wide) happens automatically inside the query rather than being filtered in application code. Only `approval_status = 'approved'` rows ever reach aggregates; `pending`/`rejected` are excluded at the RLS/function layer. A `NULL` target renders as "Chưa đặt mục tiêu" (not set) — never coerced to 0%. Targets are set separately from actuals: `TargetEditor.tsx` (manager sets per-consultant, admin sets department-wide) vs. the consultant's own actual-recording flow — a manager cannot write `actual` (blocked by an `enforce_actual_only` trigger), and editing an already-approved actual silently reverts it to `pending`. `setPersonalTargetCore` (`src/services/kpi/kpi.service.ts`) re-resolves the target consultant's real `centre_id` from `employees` rather than trusting the caller's claims — the RLS insert check only verifies `centre_id = caller's centre`, not that the named consultant actually belongs to it, so trusting client input here would let a manager plant a target row for a consultant in a different centre.
+
+### HR class scheduling & cover assignment (slice #004, US4, in progress)
+
+Leave that overlaps a taught class session requires an accepted same-centre cover before it can be approved. `src/lib/hr/conflict.ts` (`resolveAffectedSessions`) is a **pure, DB-free** resolver — callers fetch `class` rows and the `public_holiday` calendar and pass them in; it walks the leave date range against each class's weekday/recurrence window to enumerate affected sessions, excluding holidays and matching AM/PM half-days against a config-driven boundary (`leave_policy_config.am_pm_boundary_time`, defaults to noon — never hardcode this). The same resolver runs twice: once against the submitter (to require cover nominations) and once against a proposed nominee (any emitted session is a hard conflict that blocks that nominee). Class CRUD goes through the guarded `upsert_class` RPC (`src/services/class.service.ts`), which enforces the same-centre-teacher invariant in Postgres rather than in TypeScript, mirroring the existing `assign_task` pattern.
 
 ### PDF / Email
 

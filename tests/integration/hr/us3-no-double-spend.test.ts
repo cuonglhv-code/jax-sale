@@ -15,16 +15,18 @@ describe("hr US3: consume_leave_balance no-double-spend", () => {
     const claims = await assertPermission(teacherClient, "hrRequest.submit");
 
     // Two distinct, non-overlapping annual-leave requests for the SAME submitter/leave-year.
+    // Tuesdays (not Mon/Wed) — teacher.q1 teaches Monday/Wednesday sessions (seed), so a Mon/Wed
+    // date would now ALSO require a cover nomination (US4), which this test is not exercising.
     const requestA = await submitRequestCore(teacherClient, claims, {
       requestType: "annual_leave",
-      startDate: "2026-10-12",
-      endDate: "2026-10-12",
+      startDate: "2026-10-13",
+      endDate: "2026-10-13",
       dayPart: "full",
     });
     const requestB = await submitRequestCore(teacherClient, claims, {
       requestType: "annual_leave",
-      startDate: "2026-10-19",
-      endDate: "2026-10-19",
+      startDate: "2026-10-20",
+      endDate: "2026-10-20",
       dayPart: "full",
     });
 

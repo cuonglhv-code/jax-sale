@@ -14,10 +14,13 @@ describe("hr US1: submit annual leave", () => {
     const client = await hrClientFor("teacherQ1");
     const claims = await assertPermission(client, "hrRequest.submit");
 
+    // Thu-Fri (not Mon/Wed) — teacher.q1 teaches Monday/Wednesday sessions (seed), so a
+    // Mon/Wed range would now require a cover nomination (US4); this test targets the plain
+    // no-conflict submit path.
     const request = await submitRequestCore(client, claims, {
       requestType: "annual_leave",
-      startDate: "2026-09-14",
-      endDate: "2026-09-15",
+      startDate: "2026-09-17",
+      endDate: "2026-09-18",
       dayPart: "full",
     });
 

@@ -78,14 +78,19 @@ export async function recordActualCore(
 
 /**
  * FR-TARGET-01/04: a centre manager/admin sets or clears a per-consultant target within their OWN
- * centre. RLS confines the write to the caller's centre; a cross-centre attempt is rejected at the
- * database. `target: null` clears it (renders "not set", never 0% — constitution §13).
+ * centre. The row's `centre_id` MUST be the target consultant's actual centre (never the caller's
+ * claims) — otherwise a manager could plant a row under their own centre for a consultant who
+ * belongs to a different one, silently passing the `pkpi_insert_own` RLS check (which only verifies
+ * `centre_id = caller's centre`, not that the consultant actually belongs to it). Resolving the real
+ * centre here makes a cross-centre attempt fail RLS as intended (AC-2.2, SC-004).
  */
 export async function setPersonalTargetCore(
   supabase: SupabaseClient,
-  claims: Claims,
+  _claims: Claims,
   input: SetPersonalTargetInput,
 ): Promise<PersonalKpiEntry> {
+  const consultantCentreId = await resolveConsultantCentreId(supabase, input.consultantId);
+
   const { data: existing } = await supabase
     .from("personal_kpis")
     .select("id")
@@ -105,7 +110,7 @@ export async function setPersonalTargetCore(
         .from("personal_kpis")
         .insert({
           consultant_id: input.consultantId,
-          centre_id: claims.centreId,
+          centre_id: consultantCentreId,
           period: input.period,
           metric_key: input.metricKey,
           target: input.target,
@@ -127,6 +132,16 @@ export async function setPersonalTargetCore(
   }
 
   return entry;
+}
+
+async function resolveConsultantCentreId(supabase: SupabaseClient, consultantId: string): Promise<string> {
+  const { data: consultant, error } = await supabase
+    .from("employees")
+    .select("centre_id")
+    .eq("id", consultantId)
+    .single();
+  if (error || !consultant) throw new DomainError("Không tìm thấy tư vấn viên");
+  return (consultant as { centre_id: string }).centre_id;
 }
 
 /** FR-TARGET-02/04: super_admin sets/clears a network-wide department target (§13 two-table split). */

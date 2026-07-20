@@ -267,6 +267,8 @@ export interface HrRequest {
   decisionReason: string | null;
   supersedesId: string | null;
   createdAt: string; // ISO timestamp
+  /** US4 (T043a): true when an accepted cover was released post-approval and needs re-resolution. */
+  needsReresolution: boolean;
 }
 
 /** Append-only per-request timeline — a from-null row is written at creation (data-model §5). */
