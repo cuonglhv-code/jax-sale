@@ -64,11 +64,8 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
         created = await submitRequest.mutateAsync({ requestType, ...base, event, reason: reason || undefined });
       } else if (requestType === "unpaid_leave") {
         created = await submitRequest.mutateAsync({ requestType, ...base, reason: reason || undefined });
-      } else if (requestType === "sick_leave") {
-        created = await submitRequest.mutateAsync({ requestType, ...base, reason });
       } else {
-        const _exhaustive: never = requestType;
-        throw new Error(`Unknown request type: ${_exhaustive}`);
+        created = await submitRequest.mutateAsync({ requestType, ...base, reason });
       }
 
       // US6 (T055): the request row must exist before a document can be attached to it (the

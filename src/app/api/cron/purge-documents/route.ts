@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { assertCronSecret } from "@/lib/cron-auth";
 
 const MEDICAL_BUCKET = "medical-documents";
 
@@ -21,11 +22,8 @@ const MEDICAL_BUCKET = "medical-documents";
  * sweep route itself) — NOT invented here to avoid scope creep beyond this task.
  */
 export async function GET(request: Request): Promise<NextResponse> {
-  const expected = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-  if (!expected || authHeader !== `Bearer ${expected}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const unauthorized = assertCronSecret(request);
+  if (unauthorized) return unauthorized;
 
   const supabase = createServiceRoleClient();
   const today = new Date().toISOString().slice(0, 10);

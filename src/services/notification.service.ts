@@ -60,6 +60,19 @@ async function sendNonFatal(
   }
 }
 
+/**
+ * Wraps an entire trigger function (recipient resolution + sends) so a failure anywhere — not just
+ * inside `sendNonFatal` — never propagates to the caller. The single place "notifications never
+ * throw" is enforced, instead of each exported function repeating its own try/catch.
+ */
+async function notifyNonFatal(logLabel: string, fn: () => Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (err) {
+    console.error(`[notification] ${logLabel} failed to resolve recipients`, err);
+  }
+}
+
 interface EmployeeContactRow {
   id: string;
   full_name: string;
@@ -89,7 +102,11 @@ async function getSuperAdmins(supabase: SupabaseClient): Promise<EmployeeContact
   return (data ?? []) as EmployeeContactRow[];
 }
 
-async function getEmployeeContact(supabase: SupabaseClient, employeeId: string): Promise<EmployeeContactRow | null> {
+/** Exported for reuse by hr-request.service.ts (`getEmployeeName`) — one `employees`-by-id query, not two. */
+export async function getEmployeeContact(
+  supabase: SupabaseClient,
+  employeeId: string,
+): Promise<EmployeeContactRow | null> {
   const { data, error } = await supabase
     .from("employees")
     .select("id, full_name, email")
@@ -108,7 +125,7 @@ export async function notifySubmission(
   params: { centreId: string; submitterName: string; formTypeLabel: string; startDate: string | null; viewUrl: string },
   resend: ResendSender = defaultResend(),
 ): Promise<void> {
-  try {
+  await notifyNonFatal("notifySubmission", async () => {
     const managers = await getCentreManagers(supabase, params.centreId);
     await Promise.all(
       managers.map((manager) => {
@@ -128,9 +145,7 @@ export async function notifySubmission(
         );
       }),
     );
-  } catch (err) {
-    console.error("[notification] notifySubmission failed to resolve recipients", err);
-  }
+  });
 }
 
 /** Trigger: decision made. Recipient: the submitter. */
@@ -145,7 +160,7 @@ export async function notifyDecision(
   },
   resend: ResendSender = defaultResend(),
 ): Promise<void> {
-  try {
+  await notifyNonFatal("notifyDecision", async () => {
     const submitter = await getEmployeeContact(supabase, params.submitterId);
     if (!submitter) return;
     const props: DecisionNotifyProps = {
@@ -162,9 +177,7 @@ export async function notifyDecision(
       decisionNotifyBody(props),
       "hrRequest.decide",
     );
-  } catch (err) {
-    console.error("[notification] notifyDecision failed to resolve recipient", err);
-  }
+  });
 }
 
 /** Trigger: cover nominated. Recipient: the nominee. */
@@ -173,7 +186,7 @@ export async function notifyCoverNomination(
   params: { nomineeId: string; submitterName: string; sessionSummary: string; respondUrl: string },
   resend: ResendSender = defaultResend(),
 ): Promise<void> {
-  try {
+  await notifyNonFatal("notifyCoverNomination", async () => {
     const nominee = await getEmployeeContact(supabase, params.nomineeId);
     if (!nominee) return;
     const props: CoverNominationNotifyProps = {
@@ -189,9 +202,7 @@ export async function notifyCoverNomination(
       coverNominationNotifyBody(props),
       "cover.nominate",
     );
-  } catch (err) {
-    console.error("[notification] notifyCoverNomination failed to resolve recipient", err);
-  }
+  });
 }
 
 /** Trigger: a money form is approved. Recipient: accounting (super_admin, v1). */
@@ -200,7 +211,7 @@ export async function notifyMoneyFormApproved(
   params: { formTypeLabel: string; submitterName: string; amount: number | null; viewUrl: string },
   resend: ResendSender = defaultResend(),
 ): Promise<void> {
-  try {
+  await notifyNonFatal("notifyMoneyFormApproved", async () => {
     const admins = await getSuperAdmins(supabase);
     await Promise.all(
       admins.map((admin) => {
@@ -219,9 +230,7 @@ export async function notifyMoneyFormApproved(
         );
       }),
     );
-  } catch (err) {
-    console.error("[notification] notifyMoneyFormApproved failed to resolve recipients", err);
-  }
+  });
 }
 
 /** Cron trigger: pending-request reminder digest. Recipient: a centre's approver(s). */
@@ -230,7 +239,7 @@ export async function notifyPendingReminder(
   params: { centreId: string; pendingCount: number; queueUrl: string },
   resend: ResendSender = defaultResend(),
 ): Promise<void> {
-  try {
+  await notifyNonFatal("notifyPendingReminder", async () => {
     const managers = await getCentreManagers(supabase, params.centreId);
     await Promise.all(
       managers.map((manager) => {
@@ -248,7 +257,5 @@ export async function notifyPendingReminder(
         );
       }),
     );
-  } catch (err) {
-    console.error("[notification] notifyPendingReminder failed to resolve recipients", err);
-  }
+  });
 }

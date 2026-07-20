@@ -221,12 +221,12 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 ### Tests (write first, must fail)
 
-- [ ] T060 [P] [US8] Integration: coverage view + leave-by-employee report scoped by role, exportable, no medical content, in `tests/integration/hr/us8-report.test.ts`
+- [X] T060 [P] [US8] Integration: coverage view + leave-by-employee report scoped by role, exportable, no medical content, in `tests/integration/hr/us8-report.test.ts`
 
 ### Implementation
 
-- [ ] T061 [P] [US8] Report aggregation SQL functions/queries (paginated, no N+1): leave taken, by type/status, outstanding balances, coverage join
-- [ ] T062 [US8] `/nhan-su/bao-cao` UI + CSV export via `papaparse`
+- [X] T061 [P] [US8] Report aggregation SQL functions/queries (paginated, no N+1): leave taken, by type/status, outstanding balances, coverage join
+- [X] T062 [US8] `/nhan-su/bao-cao` UI + CSV export via `papaparse`
 
 **Checkpoint**: HR can answer "who is off next week and who is covering" unaided (SC-007).
 

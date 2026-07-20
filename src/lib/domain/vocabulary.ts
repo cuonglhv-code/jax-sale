@@ -183,7 +183,8 @@ export type ModuleKey =
   | "roadmap"
   | "hrRequests"
   | "hrApprovals"
-  | "hrTimetable";
+  | "hrTimetable"
+  | "hrReports";
 
 export interface NavItem {
   key: ModuleKey;
@@ -235,6 +236,16 @@ export const NAV_ITEMS: readonly NavItem[] = [
     route: "/nhan-su/lich-day",
     label: "Lịch dạy",
     roles: ["super_admin", "centre_manager", "centre_admin"],
+  },
+  // US8 (T060–T062, key hrReport.view): reporting surface — leave-by-employee/period, requests by
+  // type/status, outstanding balances, coverage view (SC-007). Re-added now that its page.tsx exists
+  // (see the note above this ModuleKey union — it was trimmed away as a placeholder in the 2026-07-20
+  // nav cleanup and only comes back the same slice its route lands).
+  {
+    key: "hrReports",
+    route: "/nhan-su/bao-cao",
+    label: "Báo cáo nhân sự",
+    roles: ["super_admin", "centre_manager"],
   },
 ];
 

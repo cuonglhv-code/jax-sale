@@ -16,6 +16,7 @@ import {
   notifyDecision,
   notifyMoneyFormApproved,
   notifyCoverNomination,
+  getEmployeeContact,
   type ResendSender,
 } from "@/services/notification.service";
 
@@ -132,9 +133,8 @@ async function assertNoSelfOverlap(
 
 /** US7: resolve an employee's display name for notification content (never their id). */
 async function getEmployeeName(supabase: SupabaseClient, employeeId: string): Promise<string> {
-  const { data, error } = await supabase.from("employees").select("full_name").eq("id", employeeId).maybeSingle();
-  if (error) throw error;
-  return (data?.full_name as string | undefined) ?? "Nhân viên";
+  const contact = await getEmployeeContact(supabase, employeeId);
+  return contact?.full_name ?? "Nhân viên";
 }
 
 /**
@@ -341,27 +341,28 @@ async function createAndAuditRequest(
     console.error("[audit] hrRequest.submit failed to log", auditError);
   }
 
-  // US7 (T058, contracts/notifications.md): notify the centre's approver(s), AFTER the mutation +
-  // audit write, non-fatal (notifySubmission itself never throws — see notification.service.ts).
+  // US7 (T058, contracts/notifications.md): notify the centre's approver(s) AND (if any covers were
+  // nominated) each nominee, AFTER the mutation + audit write, non-fatal (notify* never throws — see
+  // notification.service.ts). The two notification groups have independent recipients, so they run
+  // concurrently rather than one awaiting the other.
   const submitterName = await getEmployeeName(supabase, claims.employeeId);
-  await notifySubmission(
-    supabase,
-    {
-      centreId: request.centreId,
-      submitterName,
-      formTypeLabel: REQUEST_TYPE_LABEL[request.requestType],
-      startDate: request.startDate,
-      viewUrl: HR_REQUESTS_VIEW_URL,
-    },
-    resend,
-  );
-
-  // US7 (T058): "notify nominee on cover nomination" fires HERE, from the submit path — covers are
-  // created as part of THIS SAME create_hr_request_with_log call (US4, T042), not inside
-  // respondCoverCore (cover.service.ts), which is the NOMINEE's own later accept/decline action and
-  // has no "nomination created" moment of its own. One email per nominated cover row.
-  await Promise.all(
-    params.covers.map((cover) =>
+  await Promise.all([
+    notifySubmission(
+      supabase,
+      {
+        centreId: request.centreId,
+        submitterName,
+        formTypeLabel: REQUEST_TYPE_LABEL[request.requestType],
+        startDate: request.startDate,
+        viewUrl: HR_REQUESTS_VIEW_URL,
+      },
+      resend,
+    ),
+    // "notify nominee on cover nomination" fires HERE, from the submit path — covers are created as
+    // part of THIS SAME create_hr_request_with_log call (US4, T042), not inside respondCoverCore
+    // (cover.service.ts), which is the NOMINEE's own later accept/decline action and has no
+    // "nomination created" moment of its own. One email per nominated cover row.
+    ...params.covers.map((cover) =>
       notifyCoverNomination(
         supabase,
         {
@@ -373,7 +374,7 @@ async function createAndAuditRequest(
         resend,
       ),
     ),
-  );
+  ]);
 
   return request;
 }
@@ -708,31 +709,35 @@ export async function decideRequestCore(
     if (auditError) console.error("[audit] hrRequest.approve failed to log", auditError);
 
     // US7 (T058, contracts/notifications.md): notify the submitter of the decision, AFTER the
-    // mutation + audit write, non-fatal.
-    const submitterName = await getEmployeeName(supabase, request.submitterId);
-    await notifyDecision(
-      supabase,
-      {
-        submitterId: request.submitterId,
-        formTypeLabel: REQUEST_TYPE_LABEL[request.requestType],
-        decision: "approve",
-        reason: null,
-        viewUrl: HR_REQUESTS_VIEW_URL,
-      },
-      resend,
-    );
-    if (definition?.isMoneyForm) {
-      await notifyMoneyFormApproved(
+    // mutation + audit write, non-fatal. Independent recipients (submitter vs. accounting), so run
+    // concurrently rather than sequentially awaiting each.
+    await Promise.all([
+      notifyDecision(
         supabase,
         {
+          submitterId: request.submitterId,
           formTypeLabel: REQUEST_TYPE_LABEL[request.requestType],
-          submitterName,
-          amount: request.amount,
-          viewUrl: HR_APPROVAL_QUEUE_URL,
+          decision: "approve",
+          reason: null,
+          viewUrl: HR_REQUESTS_VIEW_URL,
         },
         resend,
-      );
-    }
+      ),
+      definition?.isMoneyForm
+        ? getEmployeeName(supabase, request.submitterId).then((submitterName) =>
+            notifyMoneyFormApproved(
+              supabase,
+              {
+                formTypeLabel: REQUEST_TYPE_LABEL[request.requestType],
+                submitterName,
+                amount: request.amount,
+                viewUrl: HR_APPROVAL_QUEUE_URL,
+              },
+              resend,
+            ),
+          )
+        : Promise.resolve(),
+    ]);
 
     return request;
   }
