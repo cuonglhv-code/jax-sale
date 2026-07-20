@@ -170,27 +170,20 @@ export const WEEKDAY_LABEL: Record<number, string> = {
 
 // ── Navigation = access matrix (ONE list; spec FR-009/024b) ───────────────────
 // This is BOTH the sidebar definition AND the route-access matrix. Adding a future module = one
-// entry here (no parallel list). Only `dashboard` and `tasks` have pages in this slice; the rest
-// are reserved access-matrix entries whose pages arrive in later slices.
+// entry here (no parallel list).
+//
+// Trimmed to modules that actually have a page.tsx (2026-07-20): the original design reserved
+// entries here for not-yet-built modules ("dashboard", "activities", "leads", "students",
+// "pathway", "team", "settings", "personnel", "workflows", "performanceActivity", "hrConfig",
+// "hrReports"), which meant real users hit raw 404s from the sidebar for anything not yet
+// shipped. Re-add a key here the same slice its page.tsx lands — never before.
 export type ModuleKey =
-  | "dashboard"
   | "tasks"
-  | "activities"
-  | "leads"
-  | "students"
-  | "pathway"
-  | "team"
-  | "settings"
-  | "personnel"
-  | "workflows"
   | "performance"
-  | "performanceActivity"
   | "roadmap"
   | "hrRequests"
   | "hrApprovals"
-  | "hrTimetable"
-  | "hrConfig"
-  | "hrReports";
+  | "hrTimetable";
 
 export interface NavItem {
   key: ModuleKey;
@@ -208,41 +201,7 @@ const ALL_ROLES: readonly AppRole[] = [
 ];
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  { key: "dashboard", route: "/dashboard", label: "Bảng điều khiển", roles: ALL_ROLES },
   { key: "tasks", route: "/tasks", label: "Công việc", roles: ALL_ROLES },
-  { key: "activities", route: "/activities", label: "Hoạt động", roles: ALL_ROLES },
-  {
-    key: "leads",
-    route: "/crm",
-    label: "Tuyển sinh",
-    roles: ["super_admin", "centre_manager", "centre_admin", "sale_consultant"],
-  },
-  { key: "students", route: "/students", label: "Học viên", roles: ALL_ROLES },
-  { key: "pathway", route: "/lo-trinh", label: "Lộ trình", roles: ALL_ROLES },
-  {
-    key: "team",
-    route: "/team",
-    label: "Đội ngũ",
-    roles: ["super_admin", "centre_manager", "centre_admin", "sale_consultant"],
-  },
-  {
-    key: "settings",
-    route: "/settings",
-    label: "Cài đặt",
-    roles: ["super_admin", "centre_manager", "centre_admin"],
-  },
-  {
-    key: "personnel",
-    route: "/nhan-su",
-    label: "Quản trị nhân sự",
-    roles: ["super_admin", "centre_manager"],
-  },
-  {
-    key: "workflows",
-    route: "/quy-trinh",
-    label: "Quy trình tự động",
-    roles: ["super_admin", "centre_manager"],
-  },
   {
     key: "performance",
     route: "/hieu-suat",
@@ -250,22 +209,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     roles: ["super_admin", "centre_manager", "centre_admin", "sale_consultant"],
   },
   {
-    key: "performanceActivity",
-    route: "/hoat-dong-kinh-doanh",
-    label: "Nhật ký hoạt động",
-    roles: ["super_admin", "centre_manager", "sale_consultant"],
-  },
-  {
     key: "roadmap",
     route: "/lo-trinh-ielts",
     label: "Lộ trình IELTS",
     roles: ["super_admin", "centre_manager", "centre_admin", "sale_consultant"],
   },
-  // US1 (T022): employee submit + "my requests", reachable by EVERY role. Deliberately a NEW
-  // top-level route, not a /nhan-su sub-path — the existing `personnel` entry above restricts
-  // /nhan-su to super_admin/centre_manager, so a sub-path would (a) be hidden from every other
-  // role's sidebar and (b) risk a page-file collision with slice-001's future personnel-management
-  // landing at /nhan-su/page.tsx. The route-guard proof lives in tests/unit/hr/hr-nav.test.ts.
+  // US1 (T022): employee submit + "my requests", reachable by EVERY role. Deliberately a
+  // top-level route, not a /nhan-su sub-path (that prefix is reserved for admin-only HR
+  // management sub-routes below). The route-guard proof lives in tests/unit/hr/hr-nav.test.ts.
   {
     key: "hrRequests",
     route: "/yeu-cau",
@@ -284,18 +235,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     route: "/nhan-su/lich-day",
     label: "Lịch dạy",
     roles: ["super_admin", "centre_manager", "centre_admin"],
-  },
-  {
-    key: "hrConfig",
-    route: "/nhan-su/cau-hinh",
-    label: "Cấu hình nghỉ phép",
-    roles: ["super_admin"],
-  },
-  {
-    key: "hrReports",
-    route: "/nhan-su/bao-cao",
-    label: "Báo cáo nhân sự",
-    roles: ["super_admin", "centre_manager"],
   },
 ];
 

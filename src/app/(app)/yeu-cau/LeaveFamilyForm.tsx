@@ -17,8 +17,7 @@ interface LeaveFamilyFormProps {
  * US5 (T049): shared form for the three non-annual leave-family types (sick/personal/unpaid) — same
  * date-range + day-part + cover-picker shape as AnnualLeaveForm (US1/US4), minus the balance display
  * (none of these draw the annual-leave balance, FR-007/FR-014). `personal_leave` additionally shows
- * the statutory event picker (data-model §10); sick leave's documentation requirement (FR-031) has
- * no upload UI yet — that is US6 — so this form only submits the leave itself.
+ * the statutory event picker (data-model §10); sick leave now includes a required reason field (T047).
  */
 export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
   const [startDate, setStartDate] = useState("");
@@ -36,13 +35,13 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
   const { data: classes } = useClasses();
   const [teachers, setTeachers] = useState<AssignableTeacher[]>([]);
 
-  // US6 (T054): sick_leave always requires documentation (FormDefinition.requiresDocument = true);
-  // personal_leave requires it for the three statutory events, not for `other` (FormDefinition's
-  // own event-conditioned predicate — this UI mirrors it as a nudge, not a hard submit-time block,
-  // per the chicken/egg note in hr-forms.ts/attachment.service.ts: the request row must exist
-  // before a document can be attached to it, so the file is uploaded as a FOLLOW-UP call after
-  // submission succeeds, never blocking the submit itself).
-  const showsDocumentField = requestType === "sick_leave" || (requestType === "personal_leave" && event !== "other");
+  // US6 (T054): personal_leave requires documentation for the three statutory events, not for
+  // `other` (FormDefinition's own event-conditioned predicate — this UI mirrors it as a nudge,
+  // not a hard submit-time block, per the chicken/egg note in hr-forms.ts/attachment.service.ts:
+  // the request row must exist before a document can be attached to it, so the file is uploaded
+  // as a FOLLOW-UP call after submission succeeds, never blocking the submit itself). sick_leave
+  // now uses a text reason field instead (T047) and no longer requires documentation.
+  const showsDocumentField = requestType === "personal_leave" && event !== "other";
 
   useEffect(() => {
     listTeachers().then((result) => {
@@ -65,8 +64,11 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
         created = await submitRequest.mutateAsync({ requestType, ...base, event, reason: reason || undefined });
       } else if (requestType === "unpaid_leave") {
         created = await submitRequest.mutateAsync({ requestType, ...base, reason: reason || undefined });
+      } else if (requestType === "sick_leave") {
+        created = await submitRequest.mutateAsync({ requestType, ...base, reason });
       } else {
-        created = await submitRequest.mutateAsync({ requestType, ...base });
+        const _exhaustive: never = requestType;
+        throw new Error(`Unknown request type: ${_exhaustive}`);
       }
 
       // US6 (T055): the request row must exist before a document can be attached to it (the
@@ -120,11 +122,14 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
         />
       )}
 
-      {requestType !== "sick_leave" && (
-        <Field label="Lý do">
-          <input value={reason} onChange={(e) => setReason(e.target.value)} className="rounded border px-2 py-1" />
-        </Field>
-      )}
+      <Field label="Lý do">
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="rounded border px-2 py-1"
+          required={requestType === "sick_leave"}
+        />
+      </Field>
 
       {showsDocumentField && (
         <FileField

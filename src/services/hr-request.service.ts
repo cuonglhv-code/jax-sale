@@ -10,6 +10,18 @@ import { listActiveClassesForTeacher, toConflictClass } from "@/services/class.s
 import { DomainError } from "@/lib/server-action";
 import { getFormDefinition, HR_FORM_REGISTRY } from "@/lib/domain/hr-forms";
 import { hasAttachmentForRequests } from "@/services/attachment.service";
+import { REQUEST_TYPE_LABEL } from "@/lib/domain/vocabulary";
+import {
+  notifySubmission,
+  notifyDecision,
+  notifyMoneyFormApproved,
+  notifyCoverNomination,
+  type ResendSender,
+} from "@/services/notification.service";
+
+/** Where the notification email links back to (contracts/notifications.md — "authenticated in-app record"). */
+const HR_REQUESTS_VIEW_URL = "/yeu-cau";
+const HR_APPROVAL_QUEUE_URL = "/nhan-su/duyet";
 
 /**
  * The leave-family shape shared by annual/sick/personal/unpaid leave (US1/US5) — a date-range
@@ -116,6 +128,13 @@ async function assertNoSelfOverlap(
       "Bạn đã có một yêu cầu nghỉ khác trùng thời gian này. Vui lòng chọn khoảng thời gian khác.",
     );
   }
+}
+
+/** US7: resolve an employee's display name for notification content (never their id). */
+async function getEmployeeName(supabase: SupabaseClient, employeeId: string): Promise<string> {
+  const { data, error } = await supabase.from("employees").select("full_name").eq("id", employeeId).maybeSingle();
+  if (error) throw error;
+  return (data?.full_name as string | undefined) ?? "Nhân viên";
 }
 
 /**
@@ -276,9 +295,10 @@ async function resolveRequiredCovers(
   return [...covers];
 }
 
-/** Shared tail of submitRequestCore: create RPC call, audit, return — everything after cover validation. */
+/** Shared tail of submitRequestCore: create RPC call, audit, notify, return — everything after cover validation. */
 async function createAndAuditRequest(
   supabase: SupabaseClient,
+  claims: Claims,
   params: {
     requestType: string;
     startDate: string | null;
@@ -289,6 +309,7 @@ async function createAndAuditRequest(
     payload: Record<string, unknown>;
     covers: readonly CoverNominationInput[];
   },
+  resend?: ResendSender,
 ): Promise<HrRequest> {
   const { data, error } = await supabase.rpc("create_hr_request_with_log", {
     p_request_type: params.requestType,
@@ -320,6 +341,40 @@ async function createAndAuditRequest(
     console.error("[audit] hrRequest.submit failed to log", auditError);
   }
 
+  // US7 (T058, contracts/notifications.md): notify the centre's approver(s), AFTER the mutation +
+  // audit write, non-fatal (notifySubmission itself never throws — see notification.service.ts).
+  const submitterName = await getEmployeeName(supabase, claims.employeeId);
+  await notifySubmission(
+    supabase,
+    {
+      centreId: request.centreId,
+      submitterName,
+      formTypeLabel: REQUEST_TYPE_LABEL[request.requestType],
+      startDate: request.startDate,
+      viewUrl: HR_REQUESTS_VIEW_URL,
+    },
+    resend,
+  );
+
+  // US7 (T058): "notify nominee on cover nomination" fires HERE, from the submit path — covers are
+  // created as part of THIS SAME create_hr_request_with_log call (US4, T042), not inside
+  // respondCoverCore (cover.service.ts), which is the NOMINEE's own later accept/decline action and
+  // has no "nomination created" moment of its own. One email per nominated cover row.
+  await Promise.all(
+    params.covers.map((cover) =>
+      notifyCoverNomination(
+        supabase,
+        {
+          nomineeId: cover.nomineeId,
+          submitterName,
+          sessionSummary: `${cover.sessionDate}`,
+          respondUrl: HR_REQUESTS_VIEW_URL,
+        },
+        resend,
+      ),
+    ),
+  );
+
   return request;
 }
 
@@ -334,6 +389,7 @@ async function submitShiftSwap(
   supabase: SupabaseClient,
   claims: Claims,
   input: ShiftSwapInput,
+  resend?: ResendSender,
 ): Promise<SubmitRequestResult> {
   const leaveYear = Number(input.cover.sessionDate.slice(0, 4));
   const [holidayRows, amPmBoundary] = await Promise.all([
@@ -369,15 +425,20 @@ async function submitShiftSwap(
     );
   }
 
-  const request = await createAndAuditRequest(supabase, {
-    requestType: input.requestType,
-    startDate: null,
-    endDate: null,
-    dayPart: null,
-    workingDays: null,
-    payload: input.note ? { note: input.note } : {},
-    covers: [input.cover],
-  });
+  const request = await createAndAuditRequest(
+    supabase,
+    claims,
+    {
+      requestType: input.requestType,
+      startDate: null,
+      endDate: null,
+      dayPart: null,
+      workingDays: null,
+      payload: input.note ? { note: input.note } : {},
+      covers: [input.cover],
+    },
+    resend,
+  );
 
   return { ...request, overBalanceWarning: false };
 }
@@ -403,6 +464,7 @@ async function submitLeaveFamily(
   supabase: SupabaseClient,
   claims: Claims,
   input: SubmitInput & LeaveFamilyInput,
+  resend?: ResendSender,
 ): Promise<SubmitRequestResult> {
   await assertNoSelfOverlap(supabase, claims, input.startDate, input.endDate);
   const workingDays = await computeIndicativeWorkingDays(supabase, input.startDate, input.endDate, input.dayPart);
@@ -412,15 +474,20 @@ async function submitLeaveFamily(
     ? await resolveRequiredCovers(supabase, claims, input.startDate, input.endDate, input.dayPart, input.covers)
     : [];
 
-  const request = await createAndAuditRequest(supabase, {
-    requestType: input.requestType,
-    startDate: input.startDate,
-    endDate: input.endDate,
-    dayPart: input.dayPart,
-    workingDays,
-    payload: leaveFamilyPayload(input),
-    covers,
-  });
+  const request = await createAndAuditRequest(
+    supabase,
+    claims,
+    {
+      requestType: input.requestType,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      dayPart: input.dayPart,
+      workingDays,
+      payload: leaveFamilyPayload(input),
+      covers,
+    },
+    resend,
+  );
 
   // T029: over-balance warning — indicative only, read AFTER creation so it never blocks the write.
   // Only annual_leave draws the balance (FR-007/FR-014); other leave-family types never warn.
@@ -443,7 +510,9 @@ async function submitLeaveFamily(
  */
 async function submitNonLeaveRequest(
   supabase: SupabaseClient,
+  claims: Claims,
   input: Exclude<SubmitInput, LeaveFamilyInput | ShiftSwapInput>,
+  resend?: ResendSender,
 ): Promise<SubmitRequestResult> {
   const asRecord = input as unknown as Record<string, unknown>;
   const startDate = typeof asRecord.startDate === "string" ? asRecord.startDate : null;
@@ -455,16 +524,21 @@ async function submitNonLeaveRequest(
     if (asRecord[key] !== undefined) payload[key] = asRecord[key];
   }
 
-  const request = await createAndAuditRequest(supabase, {
-    requestType: input.requestType,
-    startDate,
-    endDate,
-    dayPart: null,
-    workingDays: null,
-    amount,
-    payload,
-    covers: [],
-  });
+  const request = await createAndAuditRequest(
+    supabase,
+    claims,
+    {
+      requestType: input.requestType,
+      startDate,
+      endDate,
+      dayPart: null,
+      workingDays: null,
+      amount,
+      payload,
+      covers: [],
+    },
+    resend,
+  );
 
   return { ...request, overBalanceWarning: false };
 }
@@ -482,16 +556,22 @@ export async function submitRequestCore(
   supabase: SupabaseClient,
   claims: Claims,
   input: SubmitInput,
+  resend?: ResendSender,
 ): Promise<SubmitRequestResult> {
   if (input.requestType === "shift_swap") {
-    return submitShiftSwap(supabase, claims, input as ShiftSwapInput);
+    return submitShiftSwap(supabase, claims, input as ShiftSwapInput, resend);
   }
 
   if (isLeaveFamilyInput(input)) {
-    return submitLeaveFamily(supabase, claims, input);
+    return submitLeaveFamily(supabase, claims, input, resend);
   }
 
-  return submitNonLeaveRequest(supabase, input as Exclude<SubmitInput, LeaveFamilyInput | ShiftSwapInput>);
+  return submitNonLeaveRequest(
+    supabase,
+    claims,
+    input as Exclude<SubmitInput, LeaveFamilyInput | ShiftSwapInput>,
+    resend,
+  );
 }
 
 /** "My requests" list (US1 acceptance: a submitted request appears here) — own-submitter scoped. */
@@ -588,6 +668,7 @@ export async function decideRequestCore(
   supabase: SupabaseClient,
   claims: Claims,
   input: DecideRequestInput,
+  resend?: ResendSender,
 ): Promise<HrRequest> {
   const { data: existing, error: fetchError } = await supabase
     .from("hr_request")
@@ -609,18 +690,13 @@ export async function decideRequestCore(
     if (error) throw new DomainError(error.message);
     const request = toHrRequest(data as RawHrRequestRow);
 
-    // T048 (US5, FR-025): the three money forms (salary_advance/purchase/business_travel) must
-    // notify accounting (super_admin in v1) on approval — the notification infra (Resend, email
-    // templates) doesn't exist yet (US7, Phase 9), so this does NOT send anything today. Flagging
-    // `isMoneyForm`/`amount` in the audit metadata now gives the eventual US7 notification hook
-    // (`notification.service.ts`, wired after this same audit write per tasks.md Phase 9) something
-    // to key off without a second read of the form definition. DO NOT fake an email here.
+    // T048/T058 (US5+US7, FR-025): the three money forms (salary_advance/purchase/business_travel)
+    // notify accounting (super_admin in v1) on approval.
     const definition = HR_FORM_REGISTRY[request.requestType];
     const auditMetadata: Record<string, unknown> = { workingDays: request.workingDays };
     if (definition?.isMoneyForm) {
       auditMetadata.isMoneyForm = true;
       auditMetadata.amount = request.amount;
-      // TODO(US7): notify accounting (super_admin) that a money-form request was approved.
     }
 
     const { error: auditError } = await supabase.rpc("write_audit_log", {
@@ -630,6 +706,33 @@ export async function decideRequestCore(
       p_metadata: auditMetadata,
     });
     if (auditError) console.error("[audit] hrRequest.approve failed to log", auditError);
+
+    // US7 (T058, contracts/notifications.md): notify the submitter of the decision, AFTER the
+    // mutation + audit write, non-fatal.
+    const submitterName = await getEmployeeName(supabase, request.submitterId);
+    await notifyDecision(
+      supabase,
+      {
+        submitterId: request.submitterId,
+        formTypeLabel: REQUEST_TYPE_LABEL[request.requestType],
+        decision: "approve",
+        reason: null,
+        viewUrl: HR_REQUESTS_VIEW_URL,
+      },
+      resend,
+    );
+    if (definition?.isMoneyForm) {
+      await notifyMoneyFormApproved(
+        supabase,
+        {
+          formTypeLabel: REQUEST_TYPE_LABEL[request.requestType],
+          submitterName,
+          amount: request.amount,
+          viewUrl: HR_APPROVAL_QUEUE_URL,
+        },
+        resend,
+      );
+    }
 
     return request;
   }
@@ -648,6 +751,19 @@ export async function decideRequestCore(
     p_metadata: { reason: input.reason },
   });
   if (auditError) console.error("[audit] hrRequest.reject failed to log", auditError);
+
+  // US7 (T058): notify the submitter of the rejection (with reason), non-fatal.
+  await notifyDecision(
+    supabase,
+    {
+      submitterId: request.submitterId,
+      formTypeLabel: REQUEST_TYPE_LABEL[request.requestType],
+      decision: "reject",
+      reason: request.decisionReason,
+      viewUrl: HR_REQUESTS_VIEW_URL,
+    },
+    resend,
+  );
 
   return request;
 }

@@ -28,6 +28,7 @@ export const HR_SEED = {
   requestAnnualLeave: "40000000-0000-4000-8000-0000000000f1", // teacher.q1, pending
   requestSickLeave: "40000000-0000-4000-8000-0000000000f2", // sale.q1, pending
   requestSalaryAdvance: "40000000-0000-4000-8000-0000000000f3", // sale.q1, pending (amount)
+  requestPersonalLeave: "40000000-0000-4000-8000-0000000000f4", // sale.q1, pending (still supports doc upload)
 } as const;
 
 export { SEED_CENTRE_Q1, SEED_CENTRE_Q3, SEEDED_USERS };

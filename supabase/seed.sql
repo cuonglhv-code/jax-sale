@@ -131,9 +131,9 @@ insert into public.public_holiday (id, holiday_date, name) values
 on conflict (holiday_date) do nothing;
 
 -- ── Attachment policy per request type ────────────────────────────────────────
+-- sick_leave carries NO row here (2026-07-20 reconciliation): its typed `reason` field replaces
+-- the mandatory-attachment requirement, so it no longer supports document upload at all.
 insert into public.doc_type_policy (id, request_type, max_size_bytes, allowed_mime, required) values
-  ('40000000-0000-4000-8000-0000000000c1', 'sick_leave', 10485760,
-   '{application/pdf,image/png,image/jpeg}', true),
   ('40000000-0000-4000-8000-0000000000c2', 'personal_leave', 10485760,
    '{application/pdf,image/png,image/jpeg}', false)
 on conflict (request_type) do nothing;
@@ -176,7 +176,8 @@ declare
   v_requests jsonb := '[
     {"id":"40000000-0000-4000-8000-0000000000f1","type":"annual_leave","submitter":"10000000-0000-4000-8000-000000000006","centre":"00000000-0000-4000-8000-000000000001","status":"pending","start":"2026-08-10","end":"2026-08-11","day_part":"full","working_days":2,"amount":null},
     {"id":"40000000-0000-4000-8000-0000000000f2","type":"sick_leave","submitter":"10000000-0000-4000-8000-000000000004","centre":"00000000-0000-4000-8000-000000000001","status":"pending","start":"2026-07-20","end":"2026-07-20","day_part":"full","working_days":null,"amount":null},
-    {"id":"40000000-0000-4000-8000-0000000000f3","type":"salary_advance","submitter":"10000000-0000-4000-8000-000000000004","centre":"00000000-0000-4000-8000-000000000001","status":"pending","start":null,"end":null,"day_part":null,"working_days":null,"amount":5000000}
+    {"id":"40000000-0000-4000-8000-0000000000f3","type":"salary_advance","submitter":"10000000-0000-4000-8000-000000000004","centre":"00000000-0000-4000-8000-000000000001","status":"pending","start":null,"end":null,"day_part":null,"working_days":null,"amount":5000000},
+    {"id":"40000000-0000-4000-8000-0000000000f4","type":"personal_leave","submitter":"10000000-0000-4000-8000-000000000004","centre":"00000000-0000-4000-8000-000000000001","status":"pending","start":"2026-07-21","end":"2026-07-21","day_part":"full","working_days":null,"amount":null}
   ]'::jsonb;
 begin
   for r in select * from jsonb_to_recordset(v_requests) as x(

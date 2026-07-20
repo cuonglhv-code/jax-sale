@@ -115,11 +115,12 @@ HR_FORM_REGISTRY.sick_leave = {
     { name: "startDate", kind: "date", labelKey: "hr.sickLeave.startDate", required: true },
     { name: "endDate", kind: "date", labelKey: "hr.sickLeave.endDate", required: true },
     { name: "dayPart", kind: "select", labelKey: "hr.sickLeave.dayPart", options: LEAVE_DAY_PARTS },
+    { name: "reason", kind: "textarea", labelKey: "hr.sickLeave.reason", required: true },
   ],
   schema: sickLeaveSchema,
-  // Medical documentation is statutorily required for sick leave (FR-031); the upload UI/storage
-  // itself is US6 — this flag only records that the submission NEEDS one for US6 to build on.
-  requiresDocument: true,
+  // A typed reason replaces the mandatory-attachment requirement (superseded FR-031) — sick_leave
+  // no longer has upload capability at all; doc_type_policy carries no row for this type (seed.sql).
+  requiresDocument: false,
   isMoneyForm: false,
   sideEffect: "none", // FR-007/FR-014: sick leave never draws the annual-leave balance.
   conflictScoped: true, // Same leave-family cover requirement as annual_leave.

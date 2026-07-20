@@ -202,13 +202,13 @@ consumes balance, so the ledger's guarded function must exist before the approve
 
 ### Tests (write first, must fail)
 
-- [ ] T056 [P] [US7] Integration (test transport): each trigger emails the correct recipient; no attachment content in any body, in `tests/integration/hr/us7-notify.test.ts`
+- [X] T056 [P] [US7] Integration (test transport): each trigger emails the correct recipient; no attachment content in any body, in `tests/integration/hr/us7-notify.test.ts`
 
 ### Implementation
 
-- [ ] T057 [P] [US7] React Email templates (Vietnamese, narrow props — no attachment field) in `src/emails/`
-- [ ] T058 [US7] `notification.service.ts` (Resend send fns; non-fatal `try/catch`) wired into submit/decide/cover/money `*Core` after the audit write
-- [ ] T059 [US7] Pending-reminder cron route `src/app/api/cron/pending-reminders/route.ts` (CRON_SECRET-gated) + `vercel.json`/`vercel.ts` crons entry
+- [X] T057 [P] [US7] React Email templates (Vietnamese, narrow props — no attachment field) in `src/emails/` — plain-text-content modules (`src/emails/hr-notifications.ts`), matching `SUMMIT_COPY`'s style rather than `@react-email/components` JSX (simpler for a few lines of text + a link; narrow exported prop types are what the test typechecks against)
+- [X] T058 [US7] `notification.service.ts` (Resend send fns; non-fatal `try/catch`) wired into submit/decide/cover/money `*Core` after the audit write — cover-nomination notify fires from the SUBMIT path (`createAndAuditRequest` in `hr-request.service.ts`), not `respondCoverCore` (see task report)
+- [X] T059 [US7] Cron routes `src/app/api/cron/pending-reminders/route.ts` + `src/app/api/cron/purge-documents/route.ts` (CRON_SECRET bearer-gated) + `vercel.json` crons entries; route-handler tests in `tests/integration/hr/us7-cron.test.ts` (no prior route-handler test infra existed — followed the one precedent, `tests/integration/auth.guard.test.ts`, calling the handler directly with a real `Request`)
 
 **Checkpoint**: Notifications flow; medical content never in email (FR-037).
 

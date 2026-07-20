@@ -9,8 +9,10 @@ import { HR_SEED, hrClientFor, samplePdfBytes, teardownMedicalFixture } from "./
 /**
  * US6 (T050) — THE critical confidentiality proof (SC-006, contracts/storage-policies.md). Uploads
  * a REAL medical document (via the real service-role upload path, `uploadAttachmentCore`) attached
- * to `HR_SEED.requestSickLeave` (sale.q1's sick_leave request, centre Q1) and proves, against the
- * LIVE storage.objects RLS (not a mock, not just the metadata table):
+ * to `HR_SEED.requestPersonalLeave` (sale.q1's personal_leave request, centre Q1) and proves, against
+ * the LIVE storage.objects RLS (not a mock, not just the metadata table). (Reconciled 2026-07-20:
+ * sick_leave no longer supports attachments — see sick-leave.ts / hr-forms.ts — so this proof moved
+ * to personal_leave, which still does; nothing about the confidentiality mechanism itself changed.)
  *
  *  (a) a same-centre PEER (teacher.q1 — same centre, NOT the approver, NOT the submitter) is denied
  *      BOTH the `request_attachment` metadata row (RLS) AND any object read — proven by attempting
@@ -32,7 +34,7 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     if (uploadedPath) await teardownMedicalFixture([uploadedPath]);
     // Best-effort cleanup of the metadata row so repeated test runs stay idempotent.
     const svc = serviceRoleClient();
-    await svc.from("request_attachment").delete().eq("request_id", HR_SEED.requestSickLeave);
+    await svc.from("request_attachment").delete().eq("request_id", HR_SEED.requestPersonalLeave);
   });
 
   beforeAll(async () => {
@@ -41,27 +43,27 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     const { data: existing } = await svc
       .from("request_attachment")
       .select("storage_path")
-      .eq("request_id", HR_SEED.requestSickLeave);
+      .eq("request_id", HR_SEED.requestPersonalLeave);
     if (existing && existing.length > 0) {
       await svc.storage.from("medical-documents").remove(existing.map((r) => r.storage_path as string));
-      await svc.from("request_attachment").delete().eq("request_id", HR_SEED.requestSickLeave);
+      await svc.from("request_attachment").delete().eq("request_id", HR_SEED.requestPersonalLeave);
     }
   });
 
-  it("uploads a real medical document for sale.q1's sick_leave request via the real upload path", async () => {
+  it("uploads a real medical document for sale.q1's personal_leave request via the real upload path", async () => {
     const saleClient = await hrClientFor("saleQ1");
     const claims = await assertPermission(saleClient, "hrRequest.submit");
     const svc = serviceRoleClient();
 
     const attachment = await uploadAttachmentCore(saleClient, svc, claims, {
-      requestId: HR_SEED.requestSickLeave,
+      requestId: HR_SEED.requestPersonalLeave,
       fileName: "medical.pdf",
       declaredContentType: "application/pdf",
       bytes: samplePdfBytes(),
     });
 
     uploadedPath = attachment.storagePath;
-    expect(attachment.requestId).toBe(HR_SEED.requestSickLeave);
+    expect(attachment.requestId).toBe(HR_SEED.requestPersonalLeave);
     expect(attachment.mimeType).toBe("application/pdf");
     expect(attachment.isMedical).toBe(true);
   });
@@ -71,7 +73,7 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     const { data, error } = await teacherClient
       .from("request_attachment")
       .select("id, storage_path")
-      .eq("request_id", HR_SEED.requestSickLeave)
+      .eq("request_id", HR_SEED.requestPersonalLeave)
       .maybeSingle();
 
     expect(error).toBeNull();
@@ -94,7 +96,7 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     const svc = serviceRoleClient();
 
     await expect(
-      getAttachmentSignedUrlCore(teacherClient, svc, claims, HR_SEED.requestSickLeave),
+      getAttachmentSignedUrlCore(teacherClient, svc, claims, HR_SEED.requestPersonalLeave),
     ).rejects.toThrow(ForbiddenError);
   });
 
@@ -103,7 +105,7 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     const claims = await assertAuthenticated(managerClient);
     const svc = serviceRoleClient();
 
-    const url = await getAttachmentSignedUrlCore(managerClient, svc, claims, HR_SEED.requestSickLeave);
+    const url = await getAttachmentSignedUrlCore(managerClient, svc, claims, HR_SEED.requestPersonalLeave);
     expect(url).toContain("http");
 
     const response = await fetch(url);
@@ -118,7 +120,7 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     const svc = serviceRoleClient();
 
     await expect(
-      getAttachmentSignedUrlCore(managerQ3Client, svc, claims, HR_SEED.requestSickLeave),
+      getAttachmentSignedUrlCore(managerQ3Client, svc, claims, HR_SEED.requestPersonalLeave),
     ).rejects.toThrow(ForbiddenError);
   });
 
@@ -127,7 +129,7 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     const claims = await assertAuthenticated(adminClient);
     const svc = serviceRoleClient();
 
-    const url = await getAttachmentSignedUrlCore(adminClient, svc, claims, HR_SEED.requestSickLeave);
+    const url = await getAttachmentSignedUrlCore(adminClient, svc, claims, HR_SEED.requestPersonalLeave);
     expect(url).toContain("http");
   });
 
@@ -136,7 +138,7 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     const claims = await assertAuthenticated(saleClient);
     const svc = serviceRoleClient();
 
-    const url = await getAttachmentSignedUrlCore(saleClient, svc, claims, HR_SEED.requestSickLeave);
+    const url = await getAttachmentSignedUrlCore(saleClient, svc, claims, HR_SEED.requestPersonalLeave);
     expect(url).toContain("http");
   });
 
@@ -145,13 +147,13 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     const claims = await assertAuthenticated(saleClient);
 
     const requests = await listMyRequestsCore(saleClient, claims);
-    const sickLeaveRow = requests.find((r) => r.id === HR_SEED.requestSickLeave);
+    const personalLeaveRow = requests.find((r) => r.id === HR_SEED.requestPersonalLeave);
 
-    expect(sickLeaveRow).toBeDefined();
-    expect(sickLeaveRow?.hasAttachment).toBe(true);
-    expect(JSON.stringify(sickLeaveRow)).not.toContain(uploadedPath);
-    expect(JSON.stringify(sickLeaveRow)).not.toContain("storage_path");
-    expect(JSON.stringify(sickLeaveRow)).not.toContain("storagePath");
+    expect(personalLeaveRow).toBeDefined();
+    expect(personalLeaveRow?.hasAttachment).toBe(true);
+    expect(JSON.stringify(personalLeaveRow)).not.toContain(uploadedPath);
+    expect(JSON.stringify(personalLeaveRow)).not.toContain("storage_path");
+    expect(JSON.stringify(personalLeaveRow)).not.toContain("storagePath");
   });
 
   it("(f) listApprovalQueueCore never exposes the storage path — only hasAttachment", async () => {
@@ -159,12 +161,12 @@ describe("hr US6: medical-document confidentiality (SC-006)", () => {
     const claims = await assertAuthenticated(managerClient);
 
     const queue = await listApprovalQueueCore(managerClient, claims);
-    const sickLeaveRow = queue.find((r) => r.id === HR_SEED.requestSickLeave);
+    const personalLeaveRow = queue.find((r) => r.id === HR_SEED.requestPersonalLeave);
 
-    expect(sickLeaveRow).toBeDefined();
-    expect(sickLeaveRow?.hasAttachment).toBe(true);
-    expect(JSON.stringify(sickLeaveRow)).not.toContain(uploadedPath);
-    expect(JSON.stringify(sickLeaveRow)).not.toContain("storage_path");
-    expect(JSON.stringify(sickLeaveRow)).not.toContain("storagePath");
+    expect(personalLeaveRow).toBeDefined();
+    expect(personalLeaveRow?.hasAttachment).toBe(true);
+    expect(JSON.stringify(personalLeaveRow)).not.toContain(uploadedPath);
+    expect(JSON.stringify(personalLeaveRow)).not.toContain("storage_path");
+    expect(JSON.stringify(personalLeaveRow)).not.toContain("storagePath");
   });
 });
