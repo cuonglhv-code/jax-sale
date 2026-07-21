@@ -5,9 +5,9 @@ import { useSubmitRequest } from "@/hooks/mutations/hr/useSubmitRequest";
 import { useUploadAttachment } from "@/hooks/mutations/hr/useUploadAttachment";
 import { useClasses } from "@/hooks/queries/hr/useClasses";
 import { listTeachers, type AssignableTeacher } from "@/app/actions/hr/list-teachers";
-import { LEAVE_DAY_PARTS, PERSONAL_LEAVE_EVENTS, type LeaveDayPart, type PersonalLeaveEvent } from "@/lib/data/types";
-import { LEAVE_DAY_PART_LABEL, PERSONAL_LEAVE_EVENT_LABEL } from "@/lib/domain/vocabulary";
-import { DateField, SelectField, Field, FileField } from "@/components/form";
+import { PERSONAL_LEAVE_EVENTS, type LeaveDayPart, type PersonalLeaveEvent } from "@/lib/data/types";
+import { PERSONAL_LEAVE_EVENT_LABEL } from "@/lib/domain/vocabulary";
+import { DateField, SelectField, Field, FileField, DayPartField } from "@/components/form";
 
 interface LeaveFamilyFormProps {
   requestType: "sick_leave" | "personal_leave" | "unpaid_leave";
@@ -100,15 +100,12 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 rounded border p-4">
-      <DateField label="Ngày bắt đầu" value={startDate} onChange={setStartDate} required />
-      <DateField label="Ngày kết thúc" value={endDate} onChange={setEndDate} required min={startDate || undefined} />
-      <SelectField
-        label="Buổi nghỉ"
-        value={dayPart}
-        onChange={(v) => setDayPart(v as LeaveDayPart)}
-        options={LEAVE_DAY_PARTS.map((p) => ({ value: p, label: LEAVE_DAY_PART_LABEL[p] }))}
-      />
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        <DateField label="Ngày bắt đầu" value={startDate} onChange={setStartDate} required />
+        <DateField label="Ngày kết thúc" value={endDate} onChange={setEndDate} required min={startDate || undefined} />
+      </div>
+      <DayPartField value={dayPart} onChange={setDayPart} />
 
       {requestType === "personal_leave" && (
         <SelectField
@@ -123,7 +120,8 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="rounded border px-2 py-1"
+          rows={2}
+          className="resize-vertical rounded-[var(--radius-field)] border border-border bg-surface-2 px-2.5 py-2.5 text-[13.5px] leading-normal text-text outline-none transition-[border-color,box-shadow] focus:border-navy focus:shadow-[0_0_0_3px_var(--color-navy-tint)]"
           required={requestType === "sick_leave"}
         />
       </Field>
@@ -136,7 +134,7 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
         />
       )}
 
-      <p className="w-full text-sm text-gray-600">
+      <p className="m-0 text-[12.5px] text-text-muted">
         Nếu ngày nghỉ trùng buổi dạy của bạn, hãy đề cử giáo viên dạy thay bên dưới:
       </p>
       <SelectField
@@ -153,14 +151,19 @@ export function LeaveFamilyForm({ requestType }: LeaveFamilyFormProps) {
         options={teachers.map((t) => ({ value: t.id, label: t.fullName }))}
       />
 
-      <button
-        type="submit"
-        disabled={submitRequest.isPending || uploadAttachment.isPending}
-        className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-      >
-        {submitRequest.isPending || uploadAttachment.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
-      </button>
-      {error && <p className="w-full text-sm text-red-600">{error}</p>}
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={submitRequest.isPending || uploadAttachment.isPending}
+          className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-field)] bg-navy px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-navy-dark disabled:cursor-default disabled:opacity-80"
+        >
+          {(submitRequest.isPending || uploadAttachment.isPending) && (
+            <span className="h-[13px] w-[13px] animate-spin rounded-full border-2 border-navy-tint-2" style={{ borderTopColor: "white" }} />
+          )}
+          {submitRequest.isPending || uploadAttachment.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
+        </button>
+      </div>
+      {error && <p className="text-sm text-red">{error}</p>}
     </form>
   );
 }

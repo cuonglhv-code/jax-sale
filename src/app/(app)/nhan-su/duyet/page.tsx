@@ -21,10 +21,5 @@ export default async function HrApprovalsPage() {
     redirect("/dashboard");
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Duyệt yêu cầu nhân sự</h1>
-      <ApprovalQueueBoard />
-    </div>
-  );
+  return <ApprovalQueueBoard />;
 }

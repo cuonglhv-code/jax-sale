@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { assertPermission } from "@/lib/auth/assert-permission";
 import { withError, type ActionResult } from "@/lib/server-action";
 import { resolvePageSize, toRange, type Paginated } from "@/lib/pagination";
+import { isNetworkWideRole } from "@/lib/domain/vocabulary";
 import type { MetricKey } from "@/lib/data/types";
 
 export interface RankedEntry {
@@ -33,20 +34,24 @@ export async function getLeaderboard(
   metricKey: MetricKey,
   page = 1,
   pageSize?: number,
+  centreId?: string,
 ): Promise<ActionResult<Paginated<RankedEntry>>> {
   return withError(async () => {
     const supabase = await createServerSupabaseClient();
-    await assertPermission(supabase, "personalKpi.approveActual");
+    const claims = await assertPermission(supabase, "personalKpi.approveActual");
 
     const resolvedPageSize = resolvePageSize(pageSize);
     const { from, to } = toRange(page, resolvedPageSize);
     const limit = to - from + 1;
+
+    const effectiveCentreId = isNetworkWideRole(claims.role) ? centreId : undefined;
 
     const { data, error } = await supabase.rpc("kpi_leaderboard", {
       p_period: period,
       p_metric: metricKey,
       p_limit: limit,
       p_offset: from,
+      p_centre_id: effectiveCentreId ?? null,
     });
     if (error) throw error;
 

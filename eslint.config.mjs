@@ -7,6 +7,12 @@ const eslintConfig = [
   {
     ignores: ["coverage/**", "supabase/.branches/**", "supabase/.temp/**", "dist/**"],
   },
+  {
+    files: ["src/lib/ielts/pdf/*.tsx"],
+    rules: {
+      "jsx-a11y/alt-text": "off",
+    },
+  },
 ];
 
 export default eslintConfig;

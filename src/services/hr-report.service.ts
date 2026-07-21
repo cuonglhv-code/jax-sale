@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Claims, RequestStatus, RequestType } from "@/lib/data/types";
 import type { ReportFilterInput, OutstandingBalancesFilterInput, CoverageViewFilterInput } from "@/schemas/hr/report";
 import { resolvePageSize, toRange, type Paginated } from "@/lib/pagination";
+import { isNetworkWideRole } from "@/lib/domain/vocabulary";
 
 /**
  * US8 (T061, contracts/config-balance.actions.md "Reporting", SC-007): server-side aggregations
@@ -18,8 +19,22 @@ import { resolvePageSize, toRange, type Paginated } from "@/lib/pagination";
 
 const LEAVE_FAMILY_TYPES = ["annual_leave", "sick_leave", "personal_leave", "unpaid_leave"] as const;
 
-function scopeToCallerCentre<T extends { eq: (col: string, val: unknown) => T }>(query: T, claims: Claims): T {
-  if (claims.role === "super_admin") return query;
+/**
+ * Design-system shell centre switcher (design_handoff_jax_sales, step 4): `centreOverride`, when
+ * present, narrows a network-wide caller's read to one centre (the shell's `?centre=` param, read
+ * server-side by each report action below). Only applied for `isNetworkWideRole` callers — anyone
+ * else stays pinned to their own centre exactly as before; a non-network-wide caller can't widen or
+ * redirect their scope by passing an arbitrary value here, this can only NARROW what the RLS-backed
+ * `.eq("centre_id", claims.centreId)` path already permits.
+ */
+function scopeToCallerCentre<T extends { eq: (col: string, val: unknown) => T }>(
+  query: T,
+  claims: Claims,
+  centreOverride?: string,
+): T {
+  if (isNetworkWideRole(claims.role)) {
+    return centreOverride ? query.eq("centre_id", centreOverride) : query;
+  }
   return query.eq("centre_id", claims.centreId);
 }
 
@@ -61,6 +76,7 @@ export async function listLeaveByEmployeeCore(
   supabase: SupabaseClient,
   claims: Claims,
   filter: ReportFilterInput,
+  centreOverride?: string,
 ): Promise<Paginated<LeaveByEmployeeRow>> {
   const pageSize = resolvePageSize(filter.pageSize);
   const page = filter.page ?? 1;
@@ -76,7 +92,7 @@ export async function listLeaveByEmployeeCore(
     .order("start_date", { ascending: false, nullsFirst: false })
     .range(from, to);
 
-  query = scopeToCallerCentre(query, claims);
+  query = scopeToCallerCentre(query, claims, centreOverride);
   if (filter.employeeId) query = query.eq("submitter_id", filter.employeeId);
   if (filter.startDate) query = query.gte("start_date", filter.startDate);
   if (filter.endDate) query = query.lte("end_date", filter.endDate);
@@ -118,9 +134,10 @@ export async function listRequestsByTypeStatusCore(
   supabase: SupabaseClient,
   claims: Claims,
   filter: ReportFilterInput,
+  centreOverride?: string,
 ): Promise<RequestsByTypeStatusRow[]> {
   let query = supabase.from("hr_request").select("request_type, status, start_date, end_date");
-  query = scopeToCallerCentre(query, claims);
+  query = scopeToCallerCentre(query, claims, centreOverride);
   if (filter.employeeId) query = query.eq("submitter_id", filter.employeeId);
   if (filter.startDate) query = query.gte("start_date", filter.startDate);
   if (filter.endDate) query = query.lte("end_date", filter.endDate);
@@ -176,6 +193,7 @@ export async function listOutstandingBalancesCore(
   supabase: SupabaseClient,
   claims: Claims,
   filter: OutstandingBalancesFilterInput,
+  centreOverride?: string,
 ): Promise<Paginated<OutstandingBalanceRow>> {
   const pageSize = resolvePageSize(filter.pageSize);
   const page = filter.page ?? 1;
@@ -213,7 +231,10 @@ export async function listOutstandingBalancesCore(
         remainingDays: entitlementDays + openingAdjustmentDays - consumedDays,
       };
     })
-    .filter((row) => claims.role === "super_admin" || row.centreId === claims.centreId);
+    .filter((row) => {
+      if (!isNetworkWideRole(claims.role)) return row.centreId === claims.centreId;
+      return centreOverride ? row.centreId === centreOverride : true;
+    });
 
   const { from, to } = toRange(page, pageSize);
   const rows = scopedRows.slice(from, to + 1);
@@ -267,6 +288,7 @@ export async function getCoverageViewCore(
   supabase: SupabaseClient,
   claims: Claims,
   filter: CoverageViewFilterInput,
+  centreOverride?: string,
 ): Promise<Paginated<CoverageViewRow>> {
   const pageSize = resolvePageSize(filter.pageSize);
   const page = filter.page ?? 1;
@@ -305,7 +327,11 @@ export async function getCoverageViewCore(
     // Only APPROVED requests count as "who is off" (FR-039) — a nominated/accepted cover on a
     // request still awaiting decision is not yet a confirmed absence.
     if (request.status !== "approved") continue;
-    if (claims.role !== "super_admin" && request.centre_id !== claims.centreId) continue;
+    if (!isNetworkWideRole(claims.role)) {
+      if (request.centre_id !== claims.centreId) continue;
+    } else if (centreOverride && request.centre_id !== centreOverride) {
+      continue;
+    }
 
     const nominee = firstOf(raw.nominee);
     const submitter = firstOf(request.submitter);

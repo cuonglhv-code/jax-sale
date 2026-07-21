@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePendingApprovals } from "@/hooks/queries/usePendingApprovals";
 import { useApproveActual, useRejectActual } from "@/hooks/mutations/useApproveActual";
 import { METRIC_LABEL } from "@/lib/domain/vocabulary";
+import { ApproveRejectActions } from "@/components/ApproveRejectActions";
 
 /** US7: a centre manager/admin approves or rejects their centre's pending actuals (AC-7.1/7.2). */
 export function ApprovalQueue({ period }: { period: string }) {
@@ -30,49 +31,52 @@ export function ApprovalQueue({ period }: { period: string }) {
     }
   }
 
-  if (isLoading) return <p className="text-sm text-gray-500">Đang tải...</p>;
+  if (isLoading) return <p className="text-text-muted">Đang tải...</p>;
   if (!pending || pending.length === 0) {
-    return <p className="text-sm text-gray-500">Không có kết quả nào đang chờ duyệt.</p>;
+    return <p className="text-text-faint">Không có kết quả nào đang chờ duyệt.</p>;
   }
 
   return (
     <div className="flex flex-col gap-2">
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b text-left">
-            <th className="py-2">Chỉ số</th>
-            <th className="py-2">Kết quả</th>
-            <th className="py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {pending.map((entry) => (
-            <tr key={entry.id} className="border-b">
-              <td className="py-2">{METRIC_LABEL[entry.metricKey]}</td>
-              <td className="py-2">{entry.actual.toLocaleString("vi-VN")}</td>
-              <td className="flex gap-2 py-2">
-                <button
-                  type="button"
-                  onClick={() => handleApprove(entry.id)}
-                  disabled={approve.isPending || reject.isPending}
-                  className="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-50"
-                >
-                  Duyệt
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReject(entry.id)}
-                  disabled={approve.isPending || reject.isPending}
-                  className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-50"
-                >
-                  Từ chối
-                </button>
-              </td>
+      {error && <p className="text-sm text-red">{error}</p>}
+      <div className="overflow-x-auto rounded-[var(--radius-panel)] border border-border">
+        <table className="w-full min-w-[420px] border-collapse text-[13px]">
+          <thead>
+            <tr className="bg-surface-2">
+              <th className="border-b border-border px-4 py-[9px] text-left text-[11px] font-bold uppercase tracking-[.04em] text-text-muted">
+                Chỉ số
+              </th>
+              <th className="border-b border-border px-4 py-[9px] text-right text-[11px] font-bold uppercase tracking-[.04em] text-text-muted">
+                Kết quả
+              </th>
+              <th className="border-b border-border px-4 py-[9px] text-right text-[11px] font-bold uppercase tracking-[.04em] text-text-muted">
+                Thao tác
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {pending.map((entry, i) => (
+              <tr key={entry.id} className={`transition-colors hover:bg-surface-2 ${i % 2 ? "bg-surface-2" : ""}`}>
+                <td className="border-b border-border px-4 py-2.5 font-semibold text-text">
+                  {METRIC_LABEL[entry.metricKey]}
+                </td>
+                <td className="border-b border-border px-4 py-2.5 text-right font-semibold text-text [font-variant-numeric:tabular-nums]">
+                  {entry.actual.toLocaleString("vi-VN")}
+                </td>
+                <td className="border-b border-border px-4 py-2.5">
+                  <ApproveRejectActions
+                    decidedBadge={null}
+                    isPending={approve.isPending || reject.isPending}
+                    onApprove={() => handleApprove(entry.id)}
+                    onReject={() => handleReject(entry.id)}
+                    size="row"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

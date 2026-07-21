@@ -40,11 +40,14 @@ export function ExportButton({ period }: { period: string }) {
         type="button"
         onClick={handleExport}
         disabled={isExporting}
-        className="rounded bg-gray-700 px-4 py-2 text-white disabled:opacity-50"
+        className="inline-flex h-9 w-fit items-center gap-[7px] rounded-lg border border-border bg-surface-2 px-3.5 text-[12.5px] font-semibold text-text transition-colors hover:border-border-strong hover:bg-surface-3 disabled:cursor-default disabled:opacity-75"
       >
+        {isExporting && (
+          <span className="h-[13px] w-[13px] animate-spin rounded-full border-2 border-border-strong" style={{ borderTopColor: "var(--color-navy)" }} />
+        )}
         {isExporting ? "Đang xuất..." : "Xuất báo cáo (CSV + PDF)"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red">{error}</p>}
     </div>
   );
 }

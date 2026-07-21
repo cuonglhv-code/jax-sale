@@ -5,6 +5,7 @@ import { assertAuthenticated } from "@/lib/auth/assert-permission";
 import { withError, type ActionResult } from "@/lib/server-action";
 import { resolvePageSize, toRange, type Paginated } from "@/lib/pagination";
 import { classifyAttainment } from "@/services/kpi/attainment";
+import { isNetworkWideRole } from "@/lib/domain/vocabulary";
 import type { KpiDashboardRow, MetricKey } from "@/lib/data/types";
 
 interface DashboardRpcRow {
@@ -26,19 +27,25 @@ export async function getDashboard(
   period: string,
   page = 1,
   pageSize?: number,
+  centreId?: string,
 ): Promise<ActionResult<Paginated<KpiDashboardRow>>> {
   return withError(async () => {
     const supabase = await createServerSupabaseClient();
-    await assertAuthenticated(supabase);
+    const claims = await assertAuthenticated(supabase);
 
     const resolvedPageSize = resolvePageSize(pageSize);
     const { from, to } = toRange(page, resolvedPageSize);
     const limit = to - from + 1;
 
+    // Only a network-wide caller's centre choice is meaningful — RLS already pins everyone else to
+    // their own centre regardless of this param, so passing it for them would be a no-op at best.
+    const effectiveCentreId = isNetworkWideRole(claims.role) ? centreId : undefined;
+
     const { data, error } = await supabase.rpc("kpi_dashboard", {
       p_period: period,
       p_limit: limit,
       p_offset: from,
+      p_centre_id: effectiveCentreId ?? null,
     });
     if (error) throw error;
 

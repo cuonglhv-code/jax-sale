@@ -42,9 +42,11 @@ export function BusinessTravelForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 rounded border p-4">
-      <DateField label="Ngày bắt đầu" value={startDate} onChange={setStartDate} required />
-      <DateField label="Ngày kết thúc" value={endDate} onChange={setEndDate} required min={startDate || undefined} />
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        <DateField label="Ngày bắt đầu" value={startDate} onChange={setStartDate} required />
+        <DateField label="Ngày kết thúc" value={endDate} onChange={setEndDate} required min={startDate || undefined} />
+      </div>
       <Field label="Chi phí dự kiến (VNĐ)">
         <input
           type="number"
@@ -53,7 +55,7 @@ export function BusinessTravelForm() {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           required
-          className="rounded border px-2 py-1"
+          className="h-10 w-48 rounded-[var(--radius-field)] border border-border bg-surface-2 px-2.5 text-[13.5px] text-text outline-none transition-[border-color,box-shadow] [font-variant-numeric:tabular-nums] focus:border-navy focus:shadow-[0_0_0_3px_var(--color-navy-tint)]"
         />
       </Field>
       <Field label="Nơi công tác">
@@ -61,7 +63,7 @@ export function BusinessTravelForm() {
           value={destination}
           onChange={(e) => setDestination(e.target.value)}
           required
-          className="rounded border px-2 py-1"
+          className="h-10 rounded-[var(--radius-field)] border border-border bg-surface-2 px-2.5 text-[13.5px] text-text outline-none transition-[border-color,box-shadow] focus:border-navy focus:shadow-[0_0_0_3px_var(--color-navy-tint)]"
         />
       </Field>
       <Field label="Lý do">
@@ -69,17 +71,23 @@ export function BusinessTravelForm() {
           value={justification}
           onChange={(e) => setJustification(e.target.value)}
           required
-          className="rounded border px-2 py-1"
+          rows={2}
+          className="resize-vertical rounded-[var(--radius-field)] border border-border bg-surface-2 px-2.5 py-2.5 text-[13.5px] leading-normal text-text outline-none transition-[border-color,box-shadow] focus:border-navy focus:shadow-[0_0_0_3px_var(--color-navy-tint)]"
         />
       </Field>
-      <button
-        type="submit"
-        disabled={submitRequest.isPending}
-        className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-      >
-        {submitRequest.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
-      </button>
-      {error && <p className="w-full text-sm text-red-600">{error}</p>}
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={submitRequest.isPending}
+          className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-field)] bg-navy px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-navy-dark disabled:cursor-default disabled:opacity-80"
+        >
+          {submitRequest.isPending && (
+            <span className="h-[13px] w-[13px] animate-spin rounded-full border-2 border-navy-tint-2" style={{ borderTopColor: "white" }} />
+          )}
+          {submitRequest.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
+        </button>
+      </div>
+      {error && <p className="text-sm text-red">{error}</p>}
     </form>
   );
 }

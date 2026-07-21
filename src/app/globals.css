@@ -1,22 +1,133 @@
 @import "tailwindcss";
 
-/* Design tokens — badge color triples (text/bg/border) referenced by vocabulary.ts live here,
-   so light/dark theming is centralized (constitution Principle I / spec FR-024c). Filled out as
-   the vocabulary grows; kept minimal in the foundation scaffold. */
-:root {
-  --background: oklch(99% 0 0);
-  --foreground: oklch(18% 0 0);
+/* Design tokens (design_handoff_jax_sales) — Jaxtina brand extended into the app UI. Badge-color
+   triples (text/bg/border) referenced by vocabulary.ts resolve from here (constitution Principle I /
+   spec FR-024c). Theme is class-based (.dark on <html>), NOT prefers-color-scheme — see
+   ThemeScript/ThemeToggle for the localStorage['jax-theme'] mechanism. */
+@theme {
+  /* Brand */
+  --color-navy: #2B3A8C;
+  --color-navy-dark: #1B2660;
+  --color-navy-mid: #46549E;
+  --color-navy-tint: #EAEDF7;
+  --color-navy-tint-2: #DBE0F1;
+  --color-red: #D01F26;
+  --color-red-dark: #A81820;
+  --color-red-tint: #FDECEC;
+
+  /* Neutrals — light (defaults; .dark overrides below) */
+  --color-bg: #F4F5F8;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #FAFAFB;
+  --color-surface-3: #EFF1F6;
+  --color-border: #E5E7EF;
+  --color-border-strong: #CBD0DE;
+  --color-text: #1A1A1A;
+  --color-text-muted: #5E6472;
+  --color-text-faint: #8B90A0;
+
+  /* Type — variables set by next/font in layout.tsx (Montserrat/Sansita) */
+  --font-body: var(--font-montserrat), system-ui, sans-serif; /* ALL Vietnamese text */
+  --font-display: var(--font-sansita), serif;                  /* ASCII wordmark ONLY, never Vietnamese */
+
+  /* Radius */
+  --radius-field: 9px;
+  --radius-card: 10px;
+  --radius-panel: 12px;
+
+  /* Shadow — light (depth cue is flat/bordered surfaces; shadows reserved for overlays) */
+  --shadow-sm: 0 1px 2px rgba(20,26,54,.07);
+  --shadow-md: 0 6px 20px rgba(20,26,54,.12);
+  --shadow-lg: 0 18px 44px rgba(15,20,44,.22);
+
+  /* Sidebar chrome (navy gradient — same in both themes with a shift, defined once).
+     sidebar-grad is a gradient VALUE, not a color: Tailwind v4 only turns --color- prefixed tokens
+     into bg/text/border utilities, so it's referenced via inline style, never a plain class. The
+     rest ARE colors, --color- prefixed so bg-sidebar-active / text-sidebar-text resolve normally. */
+  --sidebar-grad: linear-gradient(178deg,#1B2660 0%,#12183A 100%);
+  --color-sidebar-text: #B7BEDB;
+  --color-sidebar-text-active: #FFFFFF;
+  --color-sidebar-active: rgba(255,255,255,.10);
+  --color-sidebar-hover: rgba(255,255,255,.055);
+  --color-sidebar-border: rgba(255,255,255,.09);
+
+  /* State-color triples (text/bg/border) — the tokens vocabulary.ts's BadgeColor maps resolve.
+     Task priority (3), KPI attainment (4), HR/task status (6, --st-*). Light values; .dark overrides
+     below. Previously undefined — this is the fix for that latent gap. */
+  --color-pri-high-text: #A81820;   --color-pri-high-bg: #FDECEC;   --color-pri-high-border: #F4C4C6;
+  --color-pri-mid-text: #8A5B0A;    --color-pri-mid-bg: #FCF1DC;    --color-pri-mid-border: #F1D8A0;
+  --color-pri-low-text: #2B3A8C;    --color-pri-low-bg: #EAEDF7;    --color-pri-low-border: #C3CBE8;
+
+  --color-att-notset-text: #5B6270;   --color-att-notset-bg: #EFF0F3;   --color-att-notset-border: #D9DCE4;
+  --color-att-ontrack-text: #1B6B3A;  --color-att-ontrack-bg: #E5F4EB;  --color-att-ontrack-border: #B4DDC3;
+  --color-att-behind-text: #B23A12;   --color-att-behind-bg: #FBEBE3;   --color-att-behind-border: #F3CBB6;
+  --color-att-noresult-text: #5A4B8A; --color-att-noresult-bg: #F0ECF8; --color-att-noresult-border: #D6CCEC;
+
+  --color-st-pending-text: #8A5B0A;   --color-st-pending-bg: #FCF1DC;   --color-st-pending-border: #F1D8A0;
+  --color-st-awaiting-text: #0E6C86;  --color-st-awaiting-bg: #E2F4F9;  --color-st-awaiting-border: #AEE0EC;
+  --color-st-approved-text: #1B6B3A;  --color-st-approved-bg: #E5F4EB;  --color-st-approved-border: #B4DDC3;
+  --color-st-rejected-text: #A81820;  --color-st-rejected-bg: #FDECEC;  --color-st-rejected-border: #F4C4C6;
+  --color-st-cancelled-text: #5B6270; --color-st-cancelled-bg: #EFF0F3; --color-st-cancelled-border: #D9DCE4;
+  --color-st-withdrawn-text: #5A4B8A; --color-st-withdrawn-bg: #F0ECF8; --color-st-withdrawn-border: #D6CCEC;
+
+  /* Task-status "doing" triple — reuses navy (the handoff's own README mapping: DOING has no
+     dedicated --st-* entry, since task status isn't part of the HR request-status enum; the other
+     5 task statuses reuse --st-pending/-approved/-rejected/-cancelled per that same mapping). */
+  --color-st-doing-text: #2B3A8C;   --color-st-doing-bg: #EAEDF7;   --color-st-doing-border: #C3CBE8;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(15% 0 0);
-    --foreground: oklch(96% 0 0);
-  }
+/* Dark-mode overrides — class-based (.dark on <html>), toggled + persisted by ThemeToggle.tsx. */
+.dark {
+  --color-st-doing-text: #A9B4E8;   --color-st-doing-bg: #191F38;   --color-st-doing-border: #333D63;
+
+  --color-bg: #0D1017;
+  --color-surface: #151A23;
+  --color-surface-2: #1A202B;
+  --color-surface-3: #222A38;
+  --color-border: #28303D;
+  --color-border-strong: #3A4453;
+  --color-text: #E7EAF2;
+  --color-text-muted: #9BA2B4;
+  --color-text-faint: #6C7488;
+
+  --color-navy: #8C9AE0;
+  --color-navy-dark: #0E1430;
+  --color-navy-mid: #6C7CD1;
+  --color-navy-tint: #1A2240;
+  --color-navy-tint-2: #232C50;
+  --color-red: #F0757A;
+  --color-red-dark: #F5989C;
+  --color-red-tint: #2C1719;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 6px 22px rgba(0,0,0,.5);
+  --shadow-lg: 0 20px 50px rgba(0,0,0,.6);
+
+  --sidebar-grad: linear-gradient(178deg,#0F1428 0%,#070A14 100%);
+  --color-sidebar-text: #8E96AE;
+  --color-sidebar-active: rgba(255,255,255,.09);
+  --color-sidebar-hover: rgba(255,255,255,.05);
+  --color-sidebar-border: rgba(255,255,255,.07);
+
+  --color-pri-high-text: #F3999D;   --color-pri-high-bg: #2E1618;   --color-pri-high-border: #5A2A2E;
+  --color-pri-mid-text: #F0C978;    --color-pri-mid-bg: #2A2110;    --color-pri-mid-border: #544526;
+  --color-pri-low-text: #A9B4E8;    --color-pri-low-bg: #191F38;    --color-pri-low-border: #333D63;
+
+  --color-att-notset-text: #AEB4C2;   --color-att-notset-bg: #1E222B;   --color-att-notset-border: #3A4250;
+  --color-att-ontrack-text: #86D3A2;  --color-att-ontrack-bg: #122419;  --color-att-ontrack-border: #2C4A38;
+  --color-att-behind-text: #F0A583;   --color-att-behind-bg: #2A1A12;   --color-att-behind-border: #553424;
+  --color-att-noresult-text: #B7A9E0; --color-att-noresult-bg: #1F1A30; --color-att-noresult-border: #3D3560;
+
+  --color-st-pending-text: #F0C978;   --color-st-pending-bg: #2A2110;   --color-st-pending-border: #544526;
+  --color-st-awaiting-text: #8AD4E6;  --color-st-awaiting-bg: #0F252C;  --color-st-awaiting-border: #295059;
+  --color-st-approved-text: #86D3A2;  --color-st-approved-bg: #122419;  --color-st-approved-border: #2C4A38;
+  --color-st-rejected-text: #F3999D;  --color-st-rejected-bg: #2E1618;  --color-st-rejected-border: #5A2A2E;
+  --color-st-cancelled-text: #AEB4C2; --color-st-cancelled-bg: #1E222B; --color-st-cancelled-border: #3A4250;
+  --color-st-withdrawn-text: #B7A9E0; --color-st-withdrawn-bg: #1F1A30; --color-st-withdrawn-border: #3D3560;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
 }

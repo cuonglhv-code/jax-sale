@@ -16,7 +16,11 @@ interface SelectFieldProps {
 export function SelectField({ label, value, onChange, options }: SelectFieldProps) {
   return (
     <Field label={label}>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded border px-2 py-1">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-10 rounded-[var(--radius-field)] border border-border bg-surface-2 px-2.5 text-[13.5px] text-text outline-none transition-[border-color,box-shadow] focus:border-navy focus:shadow-[0_0_0_3px_var(--color-navy-tint)]"
+      >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}

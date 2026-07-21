@@ -21,10 +21,5 @@ export default async function HrReportsPage() {
     redirect("/dashboard");
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Báo cáo nhân sự</h1>
-      <ReportsBoard />
-    </div>
-  );
+  return <ReportsBoard />;
 }

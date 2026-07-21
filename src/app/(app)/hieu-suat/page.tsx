@@ -34,37 +34,28 @@ export default async function KpiPage() {
   const currentPeriod = formatPeriod(now.getFullYear(), now.getMonth() + 1);
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Hiệu suất & KPI</h1>
+    <div className="mx-auto flex max-w-[1120px] flex-col gap-5 px-6 py-5 pb-8">
       {claims.role === "sale_consultant" && (
-        <>
-          <RecordActualForm period={currentPeriod} />
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
           <MyPerformance period={currentPeriod} />
-        </>
+          <RecordActualForm period={currentPeriod} />
+        </div>
       )}
       {(claims.role === "centre_manager" || claims.role === "centre_admin") && (
         <>
-          <section className="flex flex-col gap-2">
-            <h2 className="text-lg font-medium">Chờ duyệt</h2>
-            <ApprovalQueue period={currentPeriod} />
-          </section>
-          <section className="flex flex-col gap-2">
-            <h2 className="text-lg font-medium">Đặt mục tiêu</h2>
-            <TargetEditor period={currentPeriod} />
-          </section>
+          <ApprovalQueue period={currentPeriod} />
+          <TargetEditor period={currentPeriod} />
         </>
       )}
       {(claims.role === "centre_manager" || claims.role === "centre_admin" || claims.role === "super_admin") && (
         <>
-          <section className="flex flex-col gap-2">
-            <h2 className="text-lg font-medium">Bảng hiệu suất</h2>
-            <Dashboard period={currentPeriod} />
-          </section>
-          <section className="flex flex-col gap-2">
-            <h2 className="text-lg font-medium">Xếp hạng</h2>
+          <Dashboard period={currentPeriod} />
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
             <Leaderboard period={currentPeriod} />
-          </section>
-          <ExportButton period={currentPeriod} />
+            <div className="flex flex-col gap-2">
+              <ExportButton period={currentPeriod} />
+            </div>
+          </div>
         </>
       )}
     </div>

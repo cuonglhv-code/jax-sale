@@ -8,11 +8,14 @@ import { withError, type ActionResult } from "@/lib/server-action";
 import type { Paginated } from "@/lib/pagination";
 
 /** US8 (contracts/config-balance.actions.md "Reporting"): leave taken by employee/centre/period. */
-export async function listLeaveReport(raw: unknown): Promise<ActionResult<Paginated<LeaveByEmployeeRow>>> {
+export async function listLeaveReport(
+  raw: unknown,
+  centreId?: string,
+): Promise<ActionResult<Paginated<LeaveByEmployeeRow>>> {
   return withError(async () => {
     const supabase = await createServerSupabaseClient();
     const claims = await assertPermission(supabase, "hrReport.view");
     const input = reportFilterSchema.parse(raw ?? {});
-    return listLeaveByEmployeeCore(supabase, claims, input);
+    return listLeaveByEmployeeCore(supabase, claims, input, centreId);
   });
 }

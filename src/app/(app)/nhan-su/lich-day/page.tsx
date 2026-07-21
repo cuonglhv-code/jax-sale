@@ -21,10 +21,5 @@ export default async function HrTimetablePage() {
     redirect("/dashboard");
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Lịch dạy</h1>
-      <TimetableBoard />
-    </div>
-  );
+  return <TimetableBoard />;
 }

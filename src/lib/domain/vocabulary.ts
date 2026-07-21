@@ -52,6 +52,17 @@ export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
 /** Board column order (RESCHEDULED/CANCELLED are not columns — see types.BOARD_STATUSES). */
 export const TASK_STATUS_ORDER: readonly TaskStatus[] = ["TODO", "DOING", "DONE", "BLOCK"];
 
+/** Reuses the state-color hues rather than a 7th distinct palette (design_handoff_jax_sales README):
+ *  TODO=neutral, DOING=navy, DONE=on-track green, BLOCK=red, RESCHEDULED=amber, CANCELLED=gray. */
+export const TASK_STATUS_COLOR: Record<TaskStatus, BadgeColor> = {
+  TODO: { text: "var(--color-att-notset-text)", bg: "var(--color-att-notset-bg)", border: "var(--color-att-notset-border)" },
+  DOING: { text: "var(--color-st-doing-text)", bg: "var(--color-st-doing-bg)", border: "var(--color-st-doing-border)" },
+  DONE: { text: "var(--color-att-ontrack-text)", bg: "var(--color-att-ontrack-bg)", border: "var(--color-att-ontrack-border)" },
+  BLOCK: { text: "var(--color-st-rejected-text)", bg: "var(--color-st-rejected-bg)", border: "var(--color-st-rejected-border)" },
+  RESCHEDULED: { text: "var(--color-st-pending-text)", bg: "var(--color-st-pending-bg)", border: "var(--color-st-pending-border)" },
+  CANCELLED: { text: "var(--color-st-cancelled-text)", bg: "var(--color-st-cancelled-bg)", border: "var(--color-st-cancelled-border)" },
+};
+
 // ── Priority ─────────────────────────────────────────────────────────────────
 export const PRIORITY_LABEL: Record<Priority, string> = {
   HIGH: "Cao",
@@ -60,9 +71,9 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 };
 
 export const PRIORITY_COLOR: Record<Priority, BadgeColor> = {
-  HIGH: { text: "var(--pri-high-text)", bg: "var(--pri-high-bg)", border: "var(--pri-high-border)" },
-  MID: { text: "var(--pri-mid-text)", bg: "var(--pri-mid-bg)", border: "var(--pri-mid-border)" },
-  LOW: { text: "var(--pri-low-text)", bg: "var(--pri-low-bg)", border: "var(--pri-low-border)" },
+  HIGH: { text: "var(--color-pri-high-text)", bg: "var(--color-pri-high-bg)", border: "var(--color-pri-high-border)" },
+  MID: { text: "var(--color-pri-mid-text)", bg: "var(--color-pri-mid-bg)", border: "var(--color-pri-mid-border)" },
+  LOW: { text: "var(--color-pri-low-text)", bg: "var(--color-pri-low-bg)", border: "var(--color-pri-low-border)" },
 };
 
 // ── Task group ───────────────────────────────────────────────────────────────
@@ -75,6 +86,21 @@ export const TASK_GROUP_LABEL: Record<TaskGroup, string> = {
   HOP: "Họp",
   MARKETING_TRUYEN_THONG: "Marketing & Truyền thông",
   KHAC: "Khác",
+};
+
+/** Kanban card group-chip dot color (design_handoff_jax_sales — TUYEN_SINH/CHAM_SOC_HV/
+ *  VAN_HANH_LOP/GIANG_DAY come from the handoff's own mock data; the other 4 groups extend the
+ *  same palette rather than introducing new hues outside the design system). Solid hex, not a
+ *  BadgeColor triple — this is a small dot indicator, not a bordered badge. */
+export const TASK_GROUP_COLOR: Record<TaskGroup, string> = {
+  TUYEN_SINH: "#2B3A8C",
+  CHAM_SOC_HV: "#0E8AA8",
+  VAN_HANH_LOP: "#C08A1A",
+  GIANG_DAY: "#2E8B57",
+  SU_KIEN: "#D01F26",
+  HOP: "#5A4B8A",
+  MARKETING_TRUYEN_THONG: "#B23A12",
+  KHAC: "#5B6270",
 };
 
 // ── Sales Performance & KPI labels (slice #003) ──────────────────────────────
@@ -97,10 +123,10 @@ export const ATTAINMENT_STATE_LABEL: Record<AttainmentState, string> = {
 };
 
 export const ATTAINMENT_COLOR: Record<AttainmentState, BadgeColor> = {
-  not_set: { text: "var(--att-notset-text)", bg: "var(--att-notset-bg)", border: "var(--att-notset-border)" },
-  on_track: { text: "var(--att-ontrack-text)", bg: "var(--att-ontrack-bg)", border: "var(--att-ontrack-border)" },
-  behind: { text: "var(--att-behind-text)", bg: "var(--att-behind-bg)", border: "var(--att-behind-border)" },
-  no_result: { text: "var(--att-noresult-text)", bg: "var(--att-noresult-bg)", border: "var(--att-noresult-border)" },
+  not_set: { text: "var(--color-att-notset-text)", bg: "var(--color-att-notset-bg)", border: "var(--color-att-notset-border)" },
+  on_track: { text: "var(--color-att-ontrack-text)", bg: "var(--color-att-ontrack-bg)", border: "var(--color-att-ontrack-border)" },
+  behind: { text: "var(--color-att-behind-text)", bg: "var(--color-att-behind-bg)", border: "var(--color-att-behind-border)" },
+  no_result: { text: "var(--color-att-noresult-text)", bg: "var(--color-att-noresult-bg)", border: "var(--color-att-noresult-border)" },
 };
 
 // ── HR Requests labels (slice #004) ──────────────────────────────────────────
@@ -123,6 +149,15 @@ export const REQUEST_STATUS_LABEL: Record<RequestStatus, string> = {
   rejected: "Bị từ chối",
   cancelled: "Đã hủy",
   withdrawn: "Đã thu hồi",
+};
+
+export const REQUEST_STATUS_COLOR: Record<RequestStatus, BadgeColor> = {
+  pending: { text: "var(--color-st-pending-text)", bg: "var(--color-st-pending-bg)", border: "var(--color-st-pending-border)" },
+  awaiting_cover: { text: "var(--color-st-awaiting-text)", bg: "var(--color-st-awaiting-bg)", border: "var(--color-st-awaiting-border)" },
+  approved: { text: "var(--color-st-approved-text)", bg: "var(--color-st-approved-bg)", border: "var(--color-st-approved-border)" },
+  rejected: { text: "var(--color-st-rejected-text)", bg: "var(--color-st-rejected-bg)", border: "var(--color-st-rejected-border)" },
+  cancelled: { text: "var(--color-st-cancelled-text)", bg: "var(--color-st-cancelled-bg)", border: "var(--color-st-cancelled-border)" },
+  withdrawn: { text: "var(--color-st-withdrawn-text)", bg: "var(--color-st-withdrawn-bg)", border: "var(--color-st-withdrawn-border)" },
 };
 
 export const LEAVE_DAY_PART_LABEL: Record<LeaveDayPart, string> = {
@@ -248,6 +283,33 @@ export const NAV_ITEMS: readonly NavItem[] = [
     roles: ["super_admin", "centre_manager"],
   },
 ];
+
+/** Sidebar section grouping (design_handoff_jax_sales): "Chung" (general) vs "Nhân sự" (HR). Purely
+ *  a display grouping — access control still comes from NAV_ITEMS.roles alone. */
+export const NAV_GROUP_LABEL: Record<"chung" | "nhanSu", string> = {
+  chung: "Chung",
+  nhanSu: "Nhân sự",
+};
+
+export const NAV_ITEM_GROUP: Record<ModuleKey, keyof typeof NAV_GROUP_LABEL> = {
+  tasks: "chung",
+  performance: "chung",
+  roadmap: "chung",
+  hrRequests: "nhanSu",
+  hrApprovals: "nhanSu",
+  hrTimetable: "nhanSu",
+  hrReports: "nhanSu",
+};
+
+/** Top-bar breadcrumb + page title per route (design_handoff_jax_sales) — derived from NAV_ITEMS'
+ *  own labels, not a second hand-written copy. `route` is matched by prefix (handles /nhan-su/duyet
+ *  vs the reserved /nhan-su prefix having no page of its own). */
+export function pageMetaForRoute(pathname: string): { pageTitle: string; crumb: string } {
+  const item = NAV_ITEMS.find((i) => pathname === i.route || pathname.startsWith(`${i.route}/`));
+  if (!item) return { pageTitle: "", crumb: "" };
+  const groupTitle = NAV_GROUP_LABEL[NAV_ITEM_GROUP[item.key]];
+  return { pageTitle: item.label, crumb: `Trang chủ · ${groupTitle === "Chung" ? item.label : `${groupTitle} · ${item.label}`}` };
+}
 
 /** The nav items a role may see — same list that governs route access (FR-009). */
 export function navItemsForRole(role: AppRole): NavItem[] {
