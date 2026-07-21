@@ -13,8 +13,8 @@ import {
 } from "@/services/ielts/summit-types";
 import { INITIAL_SUMMIT_STATE, summitReducer } from "./summit-state";
 import { OpeningControls } from "./OpeningControls";
-import { Mountain } from "./Mountain";
-import { StagePanel } from "./StagePanel";
+import { Racecourse } from "./Racecourse";
+import { StageDrawer } from "./StageDrawer";
 import { SummarySurface } from "./SummarySurface";
 import { ReviewSend } from "./ReviewSend";
 import { ProofSummit } from "./ProofSummit";
@@ -146,71 +146,63 @@ export function Summit({ consultant }: { consultant: ConsultantInfo }) {
       )}
 
       {roadmap && state.view.kind !== "review" && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
-          <Mountain
+        <div className="flex flex-col gap-4">
+          <Racecourse
             stages={roadmap.stages}
             studentName={state.studentName}
             placement={state.placement}
             expandedCode={expandedCode}
             onOpenStage={(code) => dispatch({ type: "openStage", code })}
           />
-          <div className="flex flex-col gap-4">
-            {/* Persistent rail — every state one action away (FR-010). */}
-            <nav aria-label="Điều hướng" className="flex flex-wrap gap-2">
-              <RailButton
-                isActive={state.view.kind === "summary"}
-                onClick={() => dispatch({ type: "showSummary" })}
-              >
-                {SUMMIT_COPY.summaryTitle}
-              </RailButton>
-              <RailButton
-                isActive={state.view.kind === "mountain"}
-                onClick={() => dispatch({ type: "showMountain" })}
-              >
-                {SUMMIT_COPY.railBack}
-              </RailButton>
-              <RailButton isActive={false} onClick={() => dispatch({ type: "enterReview" })}>
-                {SUMMIT_COPY.railReview}
-              </RailButton>
-              <RailButton
-                isActive={state.view.kind === "secondary" && state.view.tab === "ecosystem"}
-                onClick={() => dispatch({ type: "openSecondary", tab: "ecosystem" })}
-              >
-                {SUMMIT_COPY.railEcosystem}
-              </RailButton>
-              <RailButton
-                isActive={state.view.kind === "secondary" && state.view.tab === "commitments"}
-                onClick={() => dispatch({ type: "openSecondary", tab: "commitments" })}
-              >
-                {SUMMIT_COPY.railCommitments}
-              </RailButton>
-              <RailButton
-                isActive={state.view.kind === "secondary" && state.view.tab === "faq"}
-                onClick={() => dispatch({ type: "openSecondary", tab: "faq" })}
-              >
-                {SUMMIT_COPY.railFaq}
-              </RailButton>
-            </nav>
 
-            {expandedStage && (
-              <StagePanel stage={expandedStage} onClose={() => dispatch({ type: "closeStage" })} />
-            )}
-            {state.view.kind === "summary" && (
-              <SummarySurface
-                roadmap={roadmap}
-                discount={state.discount}
-                onDiscountChange={(discount) => dispatch({ type: "setDiscount", discount })}
-              />
-            )}
-            {state.view.kind === "secondary" && (
-              <SecondaryContent tab={state.view.tab} onBack={() => dispatch({ type: "closeSecondary" })} />
-            )}
+          {/* Persistent rail — every state one action away (FR-010). */}
+          <nav aria-label="Điều hướng" className="flex flex-wrap gap-2">
+            <RailButton
+              isActive={state.view.kind === "summary"}
+              onClick={() => dispatch({ type: "showSummary" })}
+            >
+              {SUMMIT_COPY.summaryTitle}
+            </RailButton>
+            <RailButton isActive={false} onClick={() => dispatch({ type: "enterReview" })}>
+              {SUMMIT_COPY.railReview}
+            </RailButton>
+            <RailButton
+              isActive={state.view.kind === "secondary" && state.view.tab === "ecosystem"}
+              onClick={() => dispatch({ type: "openSecondary", tab: "ecosystem" })}
+            >
+              {SUMMIT_COPY.railEcosystem}
+            </RailButton>
+            <RailButton
+              isActive={state.view.kind === "secondary" && state.view.tab === "commitments"}
+              onClick={() => dispatch({ type: "openSecondary", tab: "commitments" })}
+            >
+              {SUMMIT_COPY.railCommitments}
+            </RailButton>
+            <RailButton
+              isActive={state.view.kind === "secondary" && state.view.tab === "faq"}
+              onClick={() => dispatch({ type: "openSecondary", tab: "faq" })}
+            >
+              {SUMMIT_COPY.railFaq}
+            </RailButton>
+          </nav>
 
-            {/* The summit is what the climb earns — matched proof, always available (Story 4). */}
-            {state.currentBand && state.targetBand && (
-              <ProofSummit currentBand={state.currentBand} targetBand={state.targetBand} />
-            )}
-          </div>
+          {state.view.kind === "summary" && (
+            <SummarySurface
+              roadmap={roadmap}
+              discount={state.discount}
+              onDiscountChange={(discount) => dispatch({ type: "setDiscount", discount })}
+            />
+          )}
+          {state.view.kind === "secondary" && (
+            <SecondaryContent tab={state.view.tab} onBack={() => dispatch({ type: "closeSecondary" })} />
+          )}
+
+          {/* The summit is what the climb earns — matched proof, always available (Story 4). */}
+          {state.currentBand && state.targetBand && (
+            <ProofSummit currentBand={state.currentBand} targetBand={state.targetBand} />
+          )}
+
+          <StageDrawer stage={expandedStage} onClose={() => dispatch({ type: "closeStage" })} />
         </div>
       )}
     </div>
