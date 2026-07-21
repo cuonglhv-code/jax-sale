@@ -104,9 +104,10 @@ baseline.
 
 ## Representative page patterns (so you can gauge current density/complexity)
 
-**Tasks Kanban** (`src/app/(app)/tasks/`) — `TasksBoard.tsx` renders `KanbanColumns.tsx` (4 status
-columns) of `TaskCard.tsx` items, plus `TaskFilters.tsx` and a `CreateTaskForm.tsx`. Cards show title,
-assignee, priority badge, group/category tag. This is the busiest, most-used screen in the app.
+**Tasks** (`src/app/(app)/tasks/`) — `TasksBoard.tsx` renders a tab-switchable view (`TaskViewTabs.tsx`):
+a `TaskTable.tsx` list or a `DailyWorkView.tsx` grouped by employee with per-employee completion
+progress, plus `TaskFilters.tsx` and a `CreateTaskDrawer.tsx`. Cards show title, assignee, priority
+badge, group/category tag. This is the busiest, most-used screen in the app.
 
 **HR Reports** (`src/app/(app)/nhan-su/bao-cao/ReportsBoard.tsx`) — just shipped, deliberately minimal:
 4 stacked `<section>` blocks, each a plain `<table>` with a "Xuất CSV" export button, a shared date-range

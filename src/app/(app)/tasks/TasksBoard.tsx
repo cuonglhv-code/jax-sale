@@ -35,7 +35,7 @@ export function TasksBoard({
   const showSwitcher = isNetworkWideRole(role);
   const centreId = searchParams.get("centre") ?? ALL_CENTRES;
 
-  const baseFilter = showSwitcher ? { centreId } : {};
+  const baseFilter = showSwitcher ? { centreId, pageSize: 100 } : { pageSize: 100 };
   const { data, isLoading, error } = useTasks(
     exitedFilter ? { ...baseFilter, status: exitedFilter } : baseFilter,
   );
