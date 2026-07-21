@@ -99,7 +99,7 @@ function DiscountControl({
             className="rounded-full border px-3 py-1 text-xs font-semibold"
             style={
               activePercent === pct || (pct === 0 && !discount)
-                ? { backgroundColor: BRAND.color.navy, color: "#FFFFFF", borderColor: BRAND.color.navy }
+                ? { backgroundColor: BRAND.color.navy, color: BRAND.color.paper, borderColor: BRAND.color.navy }
                 : { color: BRAND.color.navy, borderColor: `${BRAND.color.navy}55` }
             }
           >
