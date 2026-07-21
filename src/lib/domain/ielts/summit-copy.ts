@@ -35,7 +35,6 @@ export const SUMMIT_COPY = {
   /** Discount / promo pricing (display-layer only — never in the pure engine). */
   discount: {
     label: "Khuyến mãi",
-    percentSuffix: "%",
     customPlaceholder: "Tùy chỉnh",
     unitPercent: "%",
     unitAmount: "₫",

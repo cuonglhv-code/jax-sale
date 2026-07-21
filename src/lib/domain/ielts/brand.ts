@@ -60,6 +60,7 @@ export const BRAND = {
     checkpointLit: "#D01F26",
     checkpointGlow: "#FF8A8E",
     finishGold: "#FFD9A0",
-    skylineColor: "rgba(255,255,255,0.12)",
+    /** Translucent white overlay for non-climb checkpoint backgrounds (Racecourse.tsx). */
+    dimBackground: "rgba(255,255,255,.12)",
   },
 } as const;

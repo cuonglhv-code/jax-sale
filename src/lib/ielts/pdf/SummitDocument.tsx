@@ -143,7 +143,7 @@ export function SummitDocument({
             {monthsMin}–{monthsMax} {SUMMIT_COPY.monthsUnit} · {view.totalSessions} {SUMMIT_COPY.sessionsUnit}
           </Text>
           {totalPriceBreakdown && (
-            <Text style={s.coverName}>
+            <Text style={s.coverPrice}>
               {totalPriceBreakdown.hasDiscount && (
                 <Text style={s.coverPriceGross}>{formatVnd(totalPriceBreakdown.gross)}  </Text>
               )}

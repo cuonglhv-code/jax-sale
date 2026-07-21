@@ -110,7 +110,9 @@ function DiscountControl({
       </div>
       {breakdown.hasDiscount && (
         <p className="mt-2 text-xs text-neutral-600">
-          <s>{formatVnd(breakdown.gross)}</s> · {SUMMIT_COPY.discount.offLabel} {formatVnd(breakdown.off)}
+          {SUMMIT_COPY.discount.grossLabel}: <s>{formatVnd(breakdown.gross)}</s> ·{" "}
+          {SUMMIT_COPY.discount.offLabel} {formatVnd(breakdown.off)} ·{" "}
+          {SUMMIT_COPY.discount.netLabel}: {formatVnd(breakdown.net)}
         </p>
       )}
     </div>

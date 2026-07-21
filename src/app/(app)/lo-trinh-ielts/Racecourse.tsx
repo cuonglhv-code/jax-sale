@@ -38,6 +38,7 @@ function checkpointClasses(state: SummitStage["state"], isExpanded: boolean): st
  */
 export function Racecourse({ stages, studentName, placement, expandedCode, onOpenStage }: Props) {
   const r = BRAND.racecourse;
+  const firstClimbIdx = stages.findIndex((s) => s.state === "climb");
 
   return (
     <section
@@ -57,7 +58,7 @@ export function Racecourse({ stages, studentName, placement, expandedCode, onOpe
       <ol className="relative flex items-start justify-between gap-1 overflow-x-auto">
         {stages.map((stage, idx) => {
           const isExpanded = expandedCode === stage.code;
-          const isStart = idx === stages.findIndex((s) => s.state === "climb");
+          const isStart = idx === firstClimbIdx;
           return (
             <li key={stage.code} className="flex-1">
               <button
@@ -70,9 +71,9 @@ export function Racecourse({ stages, studentName, placement, expandedCode, onOpe
                   aria-hidden
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-[10px] font-bold"
                   style={{
-                    backgroundColor: stage.state === "climb" ? r.checkpointLit : "rgba(255,255,255,.12)",
-                    borderColor: stage.state === "climb" ? "#FFFFFF" : r.checkpointDim,
-                    color: "#FFFFFF",
+                    backgroundColor: stage.state === "climb" ? r.checkpointLit : r.dimBackground,
+                    borderColor: stage.state === "climb" ? BRAND.color.paper : r.checkpointDim,
+                    color: BRAND.color.paper,
                     boxShadow: stage.state === "climb" ? `0 0 12px ${r.checkpointGlow}` : undefined,
                   }}
                 >
@@ -80,7 +81,7 @@ export function Racecourse({ stages, studentName, placement, expandedCode, onOpe
                 </span>
                 <span
                   className="max-w-[80px] text-center text-xs font-semibold"
-                  style={{ color: stage.state === "climb" ? "#FFFFFF" : r.checkpointDim }}
+                  style={{ color: stage.state === "climb" ? BRAND.color.paper : r.checkpointDim }}
                 >
                   {stage.name}
                 </span>
