@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Claims, Task, TaskView } from "@/lib/data/types";
-import type { ListTasksFilter, CreateTaskInput, AssignTaskInput, ChangeTaskStatusInput } from "@/schemas/tasks";
+import type { ListTasksFilter, CreateTaskInput, AssignTaskInput, ChangeTaskStatusInput, ListEmployeesFilter } from "@/schemas/tasks";
 import { resolveEffectiveCentre } from "@/lib/domain/vocabulary";
 import { resolvePageSize, toRange, type Paginated } from "@/lib/pagination";
 import { DomainError } from "@/lib/server-action";
@@ -221,4 +221,53 @@ export async function changeTaskStatusCore(
 
   if (error) throw new DomainError(error.message);
   return toTask(data as RawTaskRow);
+}
+
+export interface EmployeeListRow {
+  id: string;
+  fullName: string;
+  departmentId: string;
+  departmentName: string;
+  avatarColor: string;
+}
+
+interface EmployeeRow {
+  id: string;
+  full_name: string;
+  department_id: string;
+  avatar_color: string;
+  department: { name: string } | null;
+}
+
+/** Active employees in centre scope, for the Daily Work view's per-employee grouping. Reads are
+ *  broad (FR-011 pattern) — gated only by `assertAuthenticated`, never a permission key. */
+export async function listEmployeesCore(
+  supabase: SupabaseClient,
+  claims: Claims,
+  filter: ListEmployeesFilter,
+): Promise<EmployeeListRow[]> {
+  const effectiveCentre = resolveEffectiveCentre(claims.role, claims.centreId, filter.centreId);
+
+  let query = supabase
+    .from("employees")
+    .select(
+      `id, full_name, department_id, avatar_color,
+       department:departments!employees_department_id_fkey(name)`,
+    )
+    .eq("is_active", true);
+
+  if (effectiveCentre !== undefined) {
+    query = query.eq("centre_id", effectiveCentre);
+  }
+
+  const { data, error } = await query.order("full_name");
+  if (error) throw error;
+
+  return ((data ?? []) as unknown as EmployeeRow[]).map((row) => ({
+    id: row.id,
+    fullName: row.full_name,
+    departmentId: row.department_id,
+    departmentName: row.department?.name ?? "",
+    avatarColor: row.avatar_color,
+  }));
 }

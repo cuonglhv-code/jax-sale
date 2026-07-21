@@ -11,6 +11,11 @@ export const listTasksFilterSchema = z.object({
 });
 export type ListTasksFilter = z.infer<typeof listTasksFilterSchema>;
 
+export const listEmployeesFilterSchema = z.object({
+  centreId: z.string().optional(), // uuid or the "all" sentinel (super_admin only — enforced server-side)
+});
+export type ListEmployeesFilter = z.infer<typeof listEmployeesFilterSchema>;
+
 export const createTaskSchema = z.object({
   assigneeId: z.string().uuid("Người được giao không hợp lệ"),
   departmentId: z.string().uuid("Bộ phận không hợp lệ"),
