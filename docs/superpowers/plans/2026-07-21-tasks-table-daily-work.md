@@ -461,10 +461,10 @@ git commit -m "feat(tasks): add pure sortTasks helper for the Task Table view"
 - Create: `src/app/(app)/tasks/TaskTable.tsx`.
 
 **Interfaces:**
-- Consumes: `TaskView` (`src/lib/data/types.ts:99`), `sortTasks(rows, key, direction)` + `TaskSortKey` + `SortDirection` (Task 4, `@/services/task-sort`), `nextAutoStatus(current: TaskStatus): TaskStatus | null` (`src/services/task-status.ts:18`), `useChangeTaskStatus()` (`src/hooks/mutations/useChangeTaskStatus.ts` — `.mutate({ taskId: string, target?: TaskStatus })`, `.isPending`, `.isError`, `.error`), `TASK_STATUS_LABEL`, `TASK_STATUS_COLOR`, `PRIORITY_LABEL`, `PRIORITY_COLOR`, `TASK_GROUP_LABEL`, `TASK_GROUP_COLOR` (all `@/lib/domain/vocabulary`), `TASK_STATUSES` (`@/lib/data/types`, for the explicit-target dropdown).
+- Consumes: `TaskView` (`src/lib/data/types.ts:99`), `sortTasks(rows, key, direction)` + `TaskSortKey` + `SortDirection` (Task 4, `@/services/task-sort`), `nextAutoStatus(current: TaskStatus): TaskStatus | null` (`src/services/task-status.ts:18`), `useChangeTaskStatus()` (`src/hooks/mutations/useChangeTaskStatus.ts` — `.mutate({ taskId: string, target?: TaskStatus })`, `.isPending`, `.isError`, `.error`), `TASK_STATUS_LABEL`, `TASK_STATUS_COLOR`, `PRIORITY_LABEL`, `PRIORITY_COLOR`, `TASK_GROUP_LABEL`, `TASK_GROUP_COLOR` (all `@/lib/domain/vocabulary`), `TASK_STATUSES` (`@/lib/data/types`, for the explicit-target dropdown), `initials(name: string): string` (`@/lib/format` — shared avatar-chip helper, extracted from `TaskCard.tsx` in a prerequisite commit before this task; do NOT redefine it locally).
 - Produces: `TaskTable({ rows }: { rows: TaskView[] })`. Task 8 (`TasksBoard.tsx`) consumes this.
 
-No new business logic beyond what Task 4 already covers with unit tests and what `TaskCard.tsx`'s existing `isOverdue`/`initials` helpers already prove — this component is presentational wiring, verified manually in Task 8's end-to-end check plus `npm run typecheck`/`npm run lint`.
+No new business logic beyond what Task 4 already covers with unit tests and what `TaskCard.tsx`'s existing `isOverdue` helper (and the shared `initials` from `@/lib/format`) already prove — this component is presentational wiring, verified manually in Task 8's end-to-end check plus `npm run typecheck`/`npm run lint`.
 
 - [ ] **Step 1: Write the component**
 
@@ -487,11 +487,7 @@ import { TASK_STATUSES } from "@/lib/data/types";
 import type { TaskView, TaskStatus } from "@/lib/data/types";
 import { nextAutoStatus } from "@/services/task-status";
 import { sortTasks, type TaskSortKey, type SortDirection } from "@/services/task-sort";
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return ((parts.at(-2)?.[0] ?? "") + (parts.at(-1)?.[0] ?? "")).toUpperCase();
-}
+import { initials } from "@/lib/format";
 
 function isOverdue(deadline: string, status: TaskStatus): boolean {
   if (status === "DONE") return false;
@@ -790,7 +786,7 @@ git commit -m "feat(tasks): add pure groupTasksByEmployeeForToday helper for Dai
 - Create: `src/app/(app)/tasks/DailyWorkView.tsx`.
 
 **Interfaces:**
-- Consumes: `useEmployees(filter: ListEmployeesFilter)` (Task 2, `@/hooks/queries/useEmployees` — returns `{ data: EmployeeListRow[] | undefined, isLoading, error }`), `groupTasksByEmployeeForToday(employees, tasks, today)` + `DailyEmployeeGroup` (Task 6, `@/services/daily-work`), `TASK_STATUS_LABEL`, `TASK_STATUS_COLOR` (`@/lib/domain/vocabulary`), `TaskView` (`@/lib/data/types`).
+- Consumes: `useEmployees(filter: ListEmployeesFilter)` (Task 2, `@/hooks/queries/useEmployees` — returns `{ data: EmployeeListRow[] | undefined, isLoading, error }`), `groupTasksByEmployeeForToday(employees, tasks, today)` + `DailyEmployeeGroup` (Task 6, `@/services/daily-work`), `TASK_STATUS_LABEL`, `TASK_STATUS_COLOR` (`@/lib/domain/vocabulary`), `TaskView` (`@/lib/data/types`), `initials(name: string): string` (`@/lib/format` — shared avatar-chip helper; do NOT redefine it locally).
 - Produces: `DailyWorkView({ rows, centreId }: { rows: TaskView[]; centreId?: string })`. Task 8 (`TasksBoard.tsx`) consumes this.
 
 - [ ] **Step 1: Write the component**
@@ -804,12 +800,8 @@ import { useState } from "react";
 import { useEmployees } from "@/hooks/queries/useEmployees";
 import { groupTasksByEmployeeForToday } from "@/services/daily-work";
 import { TASK_STATUS_LABEL, TASK_STATUS_COLOR } from "@/lib/domain/vocabulary";
+import { initials } from "@/lib/format";
 import type { TaskView } from "@/lib/data/types";
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return ((parts.at(-2)?.[0] ?? "") + (parts.at(-1)?.[0] ?? "")).toUpperCase();
-}
 
 /** Per-employee "who's on track today" checklist (superpowers brainstorm 2026-07-21). */
 export function DailyWorkView({ rows, centreId }: { rows: TaskView[]; centreId?: string }) {
@@ -1135,3 +1127,4 @@ git commit -m "feat(tasks): wire Table/Daily Work views into TasksBoard, remove 
 - **Spec coverage**: Task Table (Task 5) ✓, Daily Work (Task 7) ✓, click-to-cycle status (Task 5's `StatusPill`) ✓, tabs above filter bar (Task 3, wired in Task 8) ✓, centre-scoped employee list with super_admin network-wide support (Task 1) ✓, reuse of existing `TaskView`/vocabulary/`task-status.ts`/`useChangeTaskStatus` ✓, `KanbanColumns.tsx` removed (Task 8) ✓, `TaskCard.tsx`/`TaskFilters.tsx`/`CreateTaskDrawer.tsx`/schemas/services for existing flows left untouched ✓.
 - **Type consistency checked**: `EmployeeListRow` (Task 1) is the exact shape `useEmployees` (Task 2), `groupTasksByEmployeeForToday` (Task 6), and `DailyWorkView` (Task 7) all consume — `id, fullName, departmentId, departmentName, avatarColor` used consistently across all four. `TaskSortKey`/`SortDirection` (Task 4) match `TaskTable`'s (Task 5) usage exactly. `TaskBoardView` (Task 3) matches `TasksBoard`'s (Task 8) `view` state type exactly.
 - **FK name verified**: `employees_department_id_fkey` confirmed against `supabase/migrations/20260716120001_schema.sql:28` (Postgres's default auto-generated name for the unnamed inline FK) — no live DB connection needed to confirm this.
+- **Duplication fixed pre-execution**: the original draft had Task 5 (`TaskTable.tsx`) and Task 7 (`DailyWorkView.tsx`) each define their own local `initials()`, verbatim-duplicating the one already in `TaskCard.tsx`. Resolved before dispatching any implementer by extracting `initials()` to `src/lib/format.ts` (with its own unit test, `tests/unit/format.test.ts`) as a prerequisite commit, updating `TaskCard.tsx` to import it, and updating Tasks 5/7 above to import from `@/lib/format` instead of redefining it. `src/lib/format.ts` now exists on `master` prior to Task 1's dispatch.
