@@ -4,23 +4,17 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTasks } from "@/hooks/queries/useTasks";
 import { ALL_CENTRES, isNetworkWideRole } from "@/lib/domain/vocabulary";
-import type { AppRole, TaskStatus, TaskView } from "@/lib/data/types";
+import type { AppRole, TaskStatus } from "@/lib/data/types";
 import { CreateTaskDrawer } from "./CreateTaskDrawer";
 import { TaskFilters } from "./TaskFilters";
-import { KanbanColumns } from "./KanbanColumns";
+import { TaskTable } from "./TaskTable";
+import { DailyWorkView } from "./DailyWorkView";
+import { TaskViewTabs, type TaskBoardView } from "./TaskViewTabs";
 import { TaskCard } from "./TaskCard";
 
 interface DepartmentOption {
   id: string;
   name: string;
-}
-
-function groupByStatus(rows: TaskView[]): Record<TaskStatus, TaskView[]> {
-  const grouped: Record<TaskStatus, TaskView[]> = {
-    TODO: [], DOING: [], DONE: [], BLOCK: [], RESCHEDULED: [], CANCELLED: [],
-  };
-  for (const t of rows) grouped[t.status]?.push(t);
-  return grouped;
 }
 
 /** Centre scope now comes from the shell's `?centre=` param (CentreSwitcher, layout.tsx) rather
@@ -36,6 +30,7 @@ export function TasksBoard({
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<"all" | "HIGH" | "MID" | "LOW">("all");
   const [createOpen, setCreateOpen] = useState(false);
+  const [view, setView] = useState<TaskBoardView>("table");
   const searchParams = useSearchParams();
   const showSwitcher = isNetworkWideRole(role);
   const centreId = searchParams.get("centre") ?? ALL_CENTRES;
@@ -55,10 +50,12 @@ export function TasksBoard({
     );
   }, [data, search, priorityFilter]);
 
-  const columns = useMemo(() => groupByStatus(filteredRows), [filteredRows]);
-
   return (
     <div className="flex flex-col gap-[18px] px-6 py-5 pb-7">
+      <div className="flex items-center gap-3">
+        <TaskViewTabs active={view} onChange={setView} />
+      </div>
+
       <TaskFilters
         priorityFilter={priorityFilter}
         onPriorityFilterChange={setPriorityFilter}
@@ -74,7 +71,10 @@ export function TasksBoard({
       {isLoading && <p className="text-text-muted">Đang tải...</p>}
       {error && <p className="text-red">{error.message}</p>}
 
-      {data && !exitedFilter && <KanbanColumns columns={columns} />}
+      {data && !exitedFilter && view === "table" && <TaskTable rows={filteredRows} />}
+      {data && !exitedFilter && view === "daily" && (
+        <DailyWorkView rows={filteredRows} centreId={showSwitcher ? centreId : undefined} />
+      )}
 
       {data && exitedFilter && (
         <div className="flex flex-col gap-2">
