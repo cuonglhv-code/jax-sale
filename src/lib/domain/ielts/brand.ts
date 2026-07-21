@@ -49,4 +49,17 @@ export const BRAND = {
     pathDim: "#8A93BC",
     summitGlow: "#FFD9A0",
   },
+  /** Racecourse scene palette (Summit redesign 2026-07) — sunrise gradient: night start line to
+   *  golden finish line. Derived from Jaxtina's own navy/red identity (Constitution VIII — no
+   *  other programme's palette or device). */
+  racecourse: {
+    trackStart: "#141B45",
+    trackMid: "#2B3A8C",
+    trackEnd: "#F2C063",
+    checkpointDim: "#B9C0DD",
+    checkpointLit: "#D01F26",
+    checkpointGlow: "#FF8A8E",
+    finishGold: "#FFD9A0",
+    skylineColor: "rgba(255,255,255,0.12)",
+  },
 } as const;

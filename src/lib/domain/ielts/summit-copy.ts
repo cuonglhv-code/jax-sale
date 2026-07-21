@@ -32,6 +32,17 @@ export const SUMMIT_COPY = {
   durationLabel: "Thời gian dự kiến",
   projectedFinishLabel: "Dự kiến hoàn thành",
   totalPriceLabel: "Tổng học phí",
+  /** Discount / promo pricing (display-layer only — never in the pure engine). */
+  discount: {
+    label: "Khuyến mãi",
+    percentSuffix: "%",
+    customPlaceholder: "Tùy chỉnh",
+    unitPercent: "%",
+    unitAmount: "₫",
+    grossLabel: "Giá gốc",
+    offLabel: "Giảm giá",
+    netLabel: "Thành tiền",
+  },
   preSFlexibleNote: "Pre-S học linh hoạt theo trình độ — thời lượng không tính vào tổng trên.",
   excludesUnpricedNote: "Chưa gồm học phí khóa cần tư vấn thêm.",
   weeksUnit: "tuần",
