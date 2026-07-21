@@ -1,12 +1,8 @@
 import { useChangeTaskStatus } from "@/hooks/mutations/useChangeTaskStatus";
 import { TASK_STATUS_LABEL, PRIORITY_LABEL, PRIORITY_COLOR, TASK_GROUP_LABEL, TASK_GROUP_COLOR } from "@/lib/domain/vocabulary";
+import { initials } from "@/lib/format";
 import type { TaskView } from "@/lib/data/types";
 import { nextAutoStatus } from "@/services/task-status";
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return ((parts.at(-2)?.[0] ?? "") + (parts.at(-1)?.[0] ?? "")).toUpperCase();
-}
 
 function isOverdue(deadline: string, status: TaskView["status"]): boolean {
   if (status === "DONE") return false;
