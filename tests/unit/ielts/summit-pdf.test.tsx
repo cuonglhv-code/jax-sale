@@ -9,6 +9,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { SummitDocument, type SummitPdfMeta } from "@/lib/ielts/pdf/SummitDocument";
 import { generateSummitRoadmap } from "@/services/ielts/summit-engine";
 import { toDocumentView, type SummitRequest } from "@/services/ielts/summit-types";
+import { applyDiscount } from "@/lib/domain/ielts/pricing-discount";
 
 const meta: SummitPdfMeta = {
   consultantName: "Trần Thị B",
@@ -52,5 +53,16 @@ describe("SummitDocument: cover (T021 — Constitution III)", () => {
     const view = toDocumentView(roadmap);
     const buffer = await renderToBuffer(<SummitDocument view={view} meta={meta} />);
     expect(buffer.subarray(0, 4).toString("latin1")).toBe("%PDF");
+  }, 30_000);
+
+  it("renders a valid PDF when a discount breakdown is passed", async () => {
+    const roadmap = generateSummitRoadmap(req(), "default", "2026-07-17");
+    const view = toDocumentView(roadmap);
+    const breakdown = applyDiscount(view.totalPrice.amount, { type: "percent", value: 10 });
+    const buffer = await renderToBuffer(
+      <SummitDocument view={view} meta={meta} totalPriceBreakdown={breakdown} />,
+    );
+    expect(buffer.subarray(0, 4).toString("latin1")).toBe("%PDF");
+    expect(buffer.length).toBeGreaterThan(1000);
   }, 30_000);
 });

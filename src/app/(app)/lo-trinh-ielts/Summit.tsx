@@ -139,6 +139,7 @@ export function Summit({ consultant }: { consultant: ConsultantInfo }) {
         <ReviewSend
           roadmap={roadmap}
           consultant={consultant}
+          discount={state.discount}
           onBack={() => dispatch({ type: "exitReview" })}
           onDocumentPrepared={() => dispatch({ type: "documentPrepared" })}
           onSent={() => dispatch({ type: "markSent", at: new Date().toISOString() })}

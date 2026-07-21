@@ -8,6 +8,7 @@ import { formatVnd } from "@/lib/domain/ielts/pricing";
 import { SummitDocument, type SummitPdfMeta } from "@/lib/ielts/pdf/SummitDocument";
 import { toDocumentView, type SummitRoadmap } from "@/services/ielts/summit-types";
 import { captureSchema, type CaptureInput } from "@/schemas/summit";
+import { applyDiscount, type DiscountInput } from "@/lib/domain/ielts/pricing-discount";
 import { sendAndArchive } from "@/services/ielts/delivery/email-send";
 import { DownloadMailDraftAdapter } from "@/services/ielts/delivery/download-maildraft";
 import {
@@ -26,6 +27,7 @@ import type { ConsultantInfo } from "./Summit";
 type Props = {
   roadmap: SummitRoadmap;
   consultant: ConsultantInfo;
+  discount: DiscountInput | null;
   onBack: () => void;
   onDocumentPrepared: () => void;
   onSent: () => void;
@@ -50,7 +52,7 @@ function blobToBase64(blob: Blob): Promise<string> {
  * Review, edit, capture, send (spec Story 3; contracts/presentation.md §Review & send). The
  * preview renders from the SAME `SummitDocument` the PDF uses — one source, SC-003.
  */
-export function ReviewSend({ roadmap, consultant, onBack, onDocumentPrepared, onSent }: Props) {
+export function ReviewSend({ roadmap, consultant, discount, onBack, onDocumentPrepared, onSent }: Props) {
   const [edits, setEdits] = useState<ReviewEdits>(() => initialReviewEdits(roadmap));
   const [capture, setCapture] = useState<Partial<CaptureInput>>({
     consultantName: consultant.name,
@@ -64,6 +66,7 @@ export function ReviewSend({ roadmap, consultant, onBack, onDocumentPrepared, on
   const [generationKey] = useState(() => crypto.randomUUID());
 
   const reviewed = useMemo(() => applyReviewEdits(roadmap, edits), [roadmap, edits]);
+  const breakdown = applyDiscount(reviewed.totalPrice.amount, discount);
   const warnsDeparture = departsFromStandardLadder(roadmap, edits);
   const climb = reviewed.stages;
 
@@ -76,7 +79,7 @@ export function ReviewSend({ roadmap, consultant, onBack, onDocumentPrepared, on
 
   async function buildPdfBlob(): Promise<Blob> {
     const view = toDocumentView(reviewed);
-    return pdf(<SummitDocument view={view} meta={meta} />).toBlob();
+    return pdf(<SummitDocument view={view} meta={meta} totalPriceBreakdown={breakdown} />).toBlob();
   }
 
   async function handleSend() {
@@ -105,7 +108,7 @@ export function ReviewSend({ roadmap, consultant, onBack, onDocumentPrepared, on
         request: reviewed.request,
         capture: parsedCapture.data,
         courseSequence: climb.map((s) => s.code),
-        totalPrice: reviewed.totalPrice.amount,
+        totalPrice: breakdown.net,
         manualEdited: reviewed.manualEdited,
         pdfBase64,
       });

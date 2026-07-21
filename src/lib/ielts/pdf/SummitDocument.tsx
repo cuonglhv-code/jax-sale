@@ -7,6 +7,7 @@ import { bandLabel } from "@/lib/domain/ielts/labels";
 import { PRICE_DISPLAY, formatVnd } from "@/lib/domain/ielts/pricing";
 import { provisionalTreatmentFor } from "@/services/ielts/placement-view";
 import type { SummitDocumentView, SummitStage } from "@/services/ielts/summit-types";
+import type { PriceBreakdown } from "@/lib/domain/ielts/pricing-discount";
 import { registerBrandFonts, fontFor } from "./fonts";
 
 registerBrandFonts();
@@ -36,6 +37,8 @@ const s = StyleSheet.create({
   logo: { width: 160, marginBottom: 12 },
   coverTitle: { fontSize: 20, marginBottom: 8 },
   coverName: { fontSize: 14, marginBottom: 4 },
+  coverPrice: { fontSize: 13, marginTop: 6 },
+  coverPriceGross: { fontSize: 10, textDecoration: "line-through", opacity: 0.75 },
   section: { padding: 20 },
   h2: { fontSize: 13, color: BRAND.color.navy, marginBottom: 8 },
   strip: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
@@ -110,7 +113,15 @@ function CourseCard({ stage }: { stage: SummitStage }) {
  * `provisionalTreatmentFor` every screen surface uses — one decision point, never a flag
  * threaded separately into this document (Constitution III).
  */
-export function SummitDocument({ view, meta }: { view: SummitDocumentView; meta: SummitPdfMeta }) {
+export function SummitDocument({
+  view,
+  meta,
+  totalPriceBreakdown,
+}: {
+  view: SummitDocumentView;
+  meta: SummitPdfMeta;
+  totalPriceBreakdown?: PriceBreakdown;
+}) {
   const treatment = provisionalTreatmentFor(view.request.placement);
   const climb = view.stages.filter((st) => st.state === "climb");
   const monthsMin = Math.round(view.durationMonths.min);
@@ -131,6 +142,17 @@ export function SummitDocument({ view, meta }: { view: SummitDocumentView; meta:
             {SUMMIT_COPY.pdfDurationLabel}: {treatment ? `${treatment.estimatePrefix} ` : ""}
             {monthsMin}–{monthsMax} {SUMMIT_COPY.monthsUnit} · {view.totalSessions} {SUMMIT_COPY.sessionsUnit}
           </Text>
+          {totalPriceBreakdown && (
+            <Text style={s.coverName}>
+              {totalPriceBreakdown.hasDiscount && (
+                <Text style={s.coverPriceGross}>{formatVnd(totalPriceBreakdown.gross)}  </Text>
+              )}
+              {SUMMIT_COPY.totalPriceLabel}: {formatVnd(totalPriceBreakdown.net)}
+              {totalPriceBreakdown.hasDiscount
+                ? ` (${SUMMIT_COPY.discount.offLabel} ${formatVnd(totalPriceBreakdown.off)})`
+                : ""}
+            </Text>
+          )}
           {treatment && (
             <View style={s.coverCaveat}>
               <Text style={s.coverCaveatText}>{treatment.caveat}</Text>
