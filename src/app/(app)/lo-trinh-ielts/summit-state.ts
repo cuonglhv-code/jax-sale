@@ -7,6 +7,7 @@
 
 import type { Band } from "@/lib/domain/ielts/bands";
 import type { CourseCode } from "@/lib/domain/ielts/courses";
+import type { DiscountInput } from "@/lib/domain/ielts/pricing-discount";
 import type { Placement } from "@/services/ielts/summit-types";
 
 export type SecondaryTab = "ecosystem" | "commitments" | "faq";
@@ -28,6 +29,8 @@ export interface SummitState {
   hasUnsentWork: boolean;
   isResetPromptOpen: boolean;
   sentAt: string | null;
+  /** Display-layer only — never part of SummitRequest/SummitRoadmap (Constitution: pure engine). */
+  discount: DiscountInput | null;
 }
 
 export const INITIAL_SUMMIT_STATE: SummitState = {
@@ -39,6 +42,7 @@ export const INITIAL_SUMMIT_STATE: SummitState = {
   hasUnsentWork: false,
   isResetPromptOpen: false,
   sentAt: null,
+  discount: null,
 };
 
 export type SummitAction =
@@ -57,6 +61,7 @@ export type SummitAction =
   | { type: "exitReview" }
   | { type: "documentPrepared" }
   | { type: "markSent"; at: string }
+  | { type: "setDiscount"; discount: DiscountInput | null }
   | { type: "requestReset" }
   | { type: "cancelReset" }
   | { type: "confirmReset" };
@@ -113,6 +118,8 @@ export function summitReducer(state: SummitState, action: SummitAction): SummitS
       return { ...state, hasUnsentWork: true };
     case "markSent":
       return { ...state, hasUnsentWork: false, sentAt: action.at };
+    case "setDiscount":
+      return { ...state, discount: action.discount };
     case "requestReset":
       // Prepared-but-unsent work warns before discarding (FR-024); otherwise reset directly.
       return state.hasUnsentWork

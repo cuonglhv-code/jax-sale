@@ -108,3 +108,35 @@ describe("summit state: reset (FR-024)", () => {
     expect(run(sent, { type: "requestReset" })).toEqual(INITIAL_SUMMIT_STATE);
   });
 });
+
+describe("summitReducer — discount", () => {
+  it("starts with no discount", () => {
+    expect(INITIAL_SUMMIT_STATE.discount).toBeNull();
+  });
+
+  it("setDiscount stores the discount input", () => {
+    const next = summitReducer(INITIAL_SUMMIT_STATE, {
+      type: "setDiscount",
+      discount: { type: "percent", value: 10 },
+    });
+    expect(next.discount).toEqual({ type: "percent", value: 10 });
+  });
+
+  it("setDiscount(null) clears an existing discount", () => {
+    const withDiscount = summitReducer(INITIAL_SUMMIT_STATE, {
+      type: "setDiscount",
+      discount: { type: "percent", value: 10 },
+    });
+    const cleared = summitReducer(withDiscount, { type: "setDiscount", discount: null });
+    expect(cleared.discount).toBeNull();
+  });
+
+  it("confirmReset clears the discount along with everything else", () => {
+    const withDiscount = summitReducer(INITIAL_SUMMIT_STATE, {
+      type: "setDiscount",
+      discount: { type: "amount", value: 500_000 },
+    });
+    const reset = summitReducer(withDiscount, { type: "confirmReset" });
+    expect(reset.discount).toBeNull();
+  });
+});
