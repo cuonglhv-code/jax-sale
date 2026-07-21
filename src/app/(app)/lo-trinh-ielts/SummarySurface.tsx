@@ -3,6 +3,7 @@
 import { BRAND } from "@/lib/domain/ielts/brand";
 import { SUMMIT_COPY } from "@/lib/domain/ielts/summit-copy";
 import { formatVnd } from "@/lib/domain/ielts/pricing";
+import { applyDiscount, type DiscountInput } from "@/lib/domain/ielts/pricing-discount";
 import type { SummitRoadmap } from "@/services/ielts/summit-types";
 import { provisionalTreatmentFor } from "@/services/ielts/placement-view";
 
@@ -20,15 +21,21 @@ function formatFinishWindow(roadmap: SummitRoadmap): string {
   return `${fmt(roadmap.projectedFinish.earliest)} – ${fmt(roadmap.projectedFinish.latest)}`;
 }
 
+const DISCOUNT_PERCENT_PRESETS = [0, 5, 10, 15] as const;
+
 type Props = {
   roadmap: SummitRoadmap;
+  discount: DiscountInput | null;
+  onDiscountChange: (discount: DiscountInput | null) => void;
 };
 
-/** The climb's summary: buổi, duration range, projected finish, arithmetic total (FR-007). */
-export function SummarySurface({ roadmap }: Props) {
-  // Same single decision point as the mountain marker and PDF cover (Constitution III).
+/** The climb's summary: buổi, duration range, projected finish, discounted total (FR-007). */
+export function SummarySurface({ roadmap, discount, onDiscountChange }: Props) {
+  // Same single decision point as the racecourse marker and PDF cover (Constitution III).
   const treatment = provisionalTreatmentFor(roadmap.request.placement);
   const prefix = treatment ? `${treatment.estimatePrefix} ` : "";
+  const breakdown = applyDiscount(roadmap.totalPrice.amount, discount);
+
   return (
     <section
       aria-label={SUMMIT_COPY.summaryTitle}
@@ -52,7 +59,7 @@ export function SummarySurface({ roadmap }: Props) {
         </Item>
         <Item label={SUMMIT_COPY.totalPriceLabel} emphasized>
           {prefix}
-          {formatVnd(roadmap.totalPrice.amount)}
+          {formatVnd(breakdown.net)}
         </Item>
       </dl>
       {roadmap.hasFlexibleBase && (
@@ -61,7 +68,89 @@ export function SummarySurface({ roadmap }: Props) {
       {roadmap.totalPrice.excludesUnpriced && (
         <p className="mt-1 text-xs text-neutral-600">{SUMMIT_COPY.excludesUnpricedNote}</p>
       )}
+
+      <DiscountControl discount={discount} onDiscountChange={onDiscountChange} breakdown={breakdown} />
     </section>
+  );
+}
+
+function DiscountControl({
+  discount,
+  onDiscountChange,
+  breakdown,
+}: {
+  discount: DiscountInput | null;
+  onDiscountChange: (discount: DiscountInput | null) => void;
+  breakdown: ReturnType<typeof applyDiscount>;
+}) {
+  const activePercent = discount?.type === "percent" ? discount.value : null;
+
+  return (
+    <div className="mt-4 rounded-xl border p-3" style={{ borderColor: `${BRAND.color.navy}22` }}>
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.color.navy }}>
+        {SUMMIT_COPY.discount.label}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {DISCOUNT_PERCENT_PRESETS.map((pct) => (
+          <button
+            key={pct}
+            type="button"
+            onClick={() => onDiscountChange(pct === 0 ? null : { type: "percent", value: pct })}
+            className="rounded-full border px-3 py-1 text-xs font-semibold"
+            style={
+              activePercent === pct || (pct === 0 && !discount)
+                ? { backgroundColor: BRAND.color.navy, color: "#FFFFFF", borderColor: BRAND.color.navy }
+                : { color: BRAND.color.navy, borderColor: `${BRAND.color.navy}55` }
+            }
+          >
+            {pct}%
+          </button>
+        ))}
+        <CustomDiscountInput discount={discount} onDiscountChange={onDiscountChange} />
+      </div>
+      {breakdown.hasDiscount && (
+        <p className="mt-2 text-xs text-neutral-600">
+          <s>{formatVnd(breakdown.gross)}</s> · {SUMMIT_COPY.discount.offLabel} {formatVnd(breakdown.off)}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CustomDiscountInput({
+  discount,
+  onDiscountChange,
+}: {
+  discount: DiscountInput | null;
+  onDiscountChange: (discount: DiscountInput | null) => void;
+}) {
+  const unit = discount?.type === "amount" ? "amount" : "percent";
+
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        type="number"
+        min={0}
+        placeholder={SUMMIT_COPY.discount.customPlaceholder}
+        className="w-20 rounded-md border px-2 py-1 text-xs"
+        onChange={(e) => {
+          const value = Number(e.target.value);
+          if (!e.target.value || Number.isNaN(value)) {
+            onDiscountChange(null);
+            return;
+          }
+          onDiscountChange({ type: unit, value });
+        }}
+      />
+      <select
+        value={unit}
+        onChange={(e) => onDiscountChange(discount ? { type: e.target.value as "percent" | "amount", value: discount.value } : null)}
+        className="rounded-md border px-1 py-1 text-xs"
+      >
+        <option value="percent">{SUMMIT_COPY.discount.unitPercent}</option>
+        <option value="amount">{SUMMIT_COPY.discount.unitAmount}</option>
+      </select>
+    </div>
   );
 }
 

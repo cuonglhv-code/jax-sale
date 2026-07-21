@@ -195,7 +195,13 @@ export function Summit({ consultant }: { consultant: ConsultantInfo }) {
             {expandedStage && (
               <StagePanel stage={expandedStage} onClose={() => dispatch({ type: "closeStage" })} />
             )}
-            {state.view.kind === "summary" && <SummarySurface roadmap={roadmap} />}
+            {state.view.kind === "summary" && (
+              <SummarySurface
+                roadmap={roadmap}
+                discount={state.discount}
+                onDiscountChange={(discount) => dispatch({ type: "setDiscount", discount })}
+              />
+            )}
             {state.view.kind === "secondary" && (
               <SecondaryContent tab={state.view.tab} onBack={() => dispatch({ type: "closeSecondary" })} />
             )}
