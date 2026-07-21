@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { pdf } from "@react-pdf/renderer";
 import { exportReport } from "@/app/actions/kpi/export-report";
 import { buildKpiCsv } from "@/lib/kpi/export/csv";
-import { KpiReportDocument } from "@/lib/kpi/export/KpiReportDocument";
 
 /** US5 (AC-5.1/5.4): export the current period as CSV + a branded PDF summary. */
 export function ExportButton({ period }: { period: string }) {
@@ -23,6 +21,10 @@ export function ExportButton({ period }: { period: string }) {
       const csv = buildKpiCsv(rows, period, scope, generatedAt);
       downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), `kpi-${period}.csv`);
 
+      const [{ pdf }, { KpiReportDocument }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/lib/kpi/export/KpiReportDocument"),
+      ]);
       const pdfBlob = await pdf(
         <KpiReportDocument rows={rows} meta={{ period, scope, generatedAt }} />,
       ).toBlob();

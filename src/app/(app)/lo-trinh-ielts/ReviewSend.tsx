@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { pdf } from "@react-pdf/renderer";
 import { BRAND } from "@/lib/domain/ielts/brand";
 import { SUMMIT_COPY } from "@/lib/domain/ielts/summit-copy";
 import { formatVnd } from "@/lib/domain/ielts/pricing";
-import { SummitDocument, type SummitPdfMeta } from "@/lib/ielts/pdf/SummitDocument";
+import type { SummitPdfMeta } from "@/lib/ielts/pdf/SummitDocument";
 import { toDocumentView, type SummitRoadmap } from "@/services/ielts/summit-types";
 import { captureSchema, type CaptureInput } from "@/schemas/summit";
 import { applyDiscount, type DiscountInput } from "@/lib/domain/ielts/pricing-discount";
@@ -79,6 +78,10 @@ export function ReviewSend({ roadmap, consultant, discount, onBack, onDocumentPr
 
   async function buildPdfBlob(): Promise<Blob> {
     const view = toDocumentView(reviewed);
+    const [{ pdf }, { SummitDocument }] = await Promise.all([
+      import("@react-pdf/renderer"),
+      import("@/lib/ielts/pdf/SummitDocument"),
+    ]);
     return pdf(<SummitDocument view={view} meta={meta} totalPriceBreakdown={breakdown} />).toBlob();
   }
 
