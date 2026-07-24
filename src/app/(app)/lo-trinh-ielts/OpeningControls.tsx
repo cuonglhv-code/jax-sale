@@ -7,6 +7,9 @@ import { CURRENT_BAND_OPTIONS, TARGET_BAND_OPTIONS, type Band } from "@/lib/doma
 import type { Placement } from "@/services/ielts/summit-types";
 import { assertNever } from "@/services/ielts/summit-types";
 
+const inputClass =
+  "h-10 rounded-[var(--radius-field)] border border-border bg-surface-2 px-2.5 text-[13.5px] text-text outline-none transition-[border-color,box-shadow] focus:border-navy focus:shadow-[0_0_0_3px_var(--color-navy-tint)]";
+
 /** Summit current-band options: bands.ts options plus "below A1" for Pre-S entry (T011). */
 const SUMMIT_CURRENT_OPTIONS: readonly Band[] = ["below A1", ...CURRENT_BAND_OPTIONS];
 
@@ -27,14 +30,17 @@ type Props = {
 export function OpeningControls(props: Props) {
   const { placement } = props;
   return (
-    <section aria-label="Thiết lập lộ trình" className="flex flex-wrap items-end gap-4">
-      <label className="flex flex-col gap-1 text-sm font-medium">
+    <section
+      aria-label="Thiết lập lộ trình"
+      className="flex flex-wrap items-end gap-4 rounded-[var(--radius-card)] border border-border bg-surface p-4"
+    >
+      <label className="flex flex-col gap-1.5 text-[13px] font-medium text-text">
         {SUMMIT_COPY.studentNameLabel}
         <input
           type="text"
           value={props.studentName}
           onChange={(e) => props.onStudentName(e.target.value)}
-          className="w-52 rounded-lg border px-3 py-2"
+          className={`${inputClass} w-52`}
         />
       </label>
 
@@ -52,9 +58,9 @@ export function OpeningControls(props: Props) {
       />
 
       {/* Mode A/B — a data distinction, not styling (Constitution III / T019). */}
-      <fieldset className="flex flex-col gap-1 text-sm font-medium">
-        <legend className="text-sm font-medium">{SUMMIT_COPY.modeLabel}</legend>
-        <div className="flex overflow-hidden rounded-lg border">
+      <fieldset className="flex flex-col gap-1.5 text-[13px] font-medium text-text">
+        <legend className="text-[13px] font-medium text-text">{SUMMIT_COPY.modeLabel}</legend>
+        <div className="flex overflow-hidden rounded-[var(--radius-field)] border border-border">
           <ModeButton
             isActive={placement.kind === "measured"}
             onClick={() => props.onPlacement({ kind: "measured", testDate: null })}
@@ -92,7 +98,7 @@ function PlacementDateField({
   switch (placement.kind) {
     case "measured":
       return (
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className="flex flex-col gap-1.5 text-[13px] font-medium text-text">
           {SUMMIT_COPY.testDateLabel}
           <input
             type="date"
@@ -100,7 +106,7 @@ function PlacementDateField({
             onChange={(e) =>
               onPlacement({ kind: "measured", testDate: e.target.value || null })
             }
-            className="rounded-lg border px-3 py-2"
+            className={inputClass}
           />
         </label>
       );
@@ -123,12 +129,12 @@ function BandSelect({
   onChange: (band: Band) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm font-medium">
+    <label className="flex flex-col gap-1.5 text-[13px] font-medium text-text">
       {label}
       <select
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value as Band)}
-        className="rounded-lg border px-3 py-2"
+        className={inputClass}
       >
         <option value="" disabled>
           —
@@ -157,7 +163,7 @@ function ModeButton({
       type="button"
       aria-pressed={isActive}
       onClick={onClick}
-      className="px-3 py-2 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none"
+      className="h-10 px-3 py-2 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none"
       style={
         isActive
           ? { backgroundColor: BRAND.color.navy, color: "#FFFFFF" }
