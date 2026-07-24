@@ -40,3 +40,9 @@ export const changeTaskStatusSchema = z.object({
   note: z.string().optional(),
 });
 export type ChangeTaskStatusInput = z.infer<typeof changeTaskStatusSchema>;
+
+export const rescheduleTaskSchema = z.object({
+  taskId: z.string().uuid(),
+  newDeadline: z.string().min(1, "Vui lòng chọn hạn mới"),
+});
+export type RescheduleTaskInput = z.infer<typeof rescheduleTaskSchema>;

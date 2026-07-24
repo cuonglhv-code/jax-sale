@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Claims, Task, TaskView } from "@/lib/data/types";
-import type { ListTasksFilter, CreateTaskInput, AssignTaskInput, ChangeTaskStatusInput, ListEmployeesFilter } from "@/schemas/tasks";
+import type { ListTasksFilter, CreateTaskInput, AssignTaskInput, ChangeTaskStatusInput, RescheduleTaskInput, ListEmployeesFilter } from "@/schemas/tasks";
 import { resolveEffectiveCentre } from "@/lib/domain/vocabulary";
 import { resolvePageSize, toRange, type Paginated } from "@/lib/pagination";
 import { DomainError } from "@/lib/server-action";
@@ -217,6 +217,21 @@ export async function changeTaskStatusCore(
     p_task_id: input.taskId,
     p_target: input.target ?? null,
     p_note: input.note ?? null,
+  });
+
+  if (error) throw new DomainError(error.message);
+  return toTask(data as RawTaskRow);
+}
+
+/** Calendar drag-and-drop: reschedule a task's deadline. Same centre/teacher scope as assign. */
+export async function rescheduleTaskCore(
+  supabase: SupabaseClient,
+  _claims: Claims,
+  input: RescheduleTaskInput,
+): Promise<Task> {
+  const { data, error } = await supabase.rpc("reschedule_task", {
+    p_task_id: input.taskId,
+    p_new_deadline: input.newDeadline,
   });
 
   if (error) throw new DomainError(error.message);

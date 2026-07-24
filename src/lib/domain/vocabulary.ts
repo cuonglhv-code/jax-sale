@@ -216,6 +216,7 @@ export type ModuleKey =
   | "tasks"
   | "performance"
   | "roadmap"
+  | "calendar"
   | "hrRequests"
   | "hrApprovals"
   | "hrTimetable"
@@ -250,6 +251,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Lộ trình IELTS",
     roles: ["super_admin", "centre_manager", "centre_admin", "sale_consultant"],
   },
+  { key: "calendar", route: "/calendar", label: "Lịch công việc", roles: ALL_ROLES },
   // US1 (T022): employee submit + "my requests", reachable by EVERY role. Deliberately a
   // top-level route, not a /nhan-su sub-path (that prefix is reserved for admin-only HR
   // management sub-routes below). The route-guard proof lives in tests/unit/hr/hr-nav.test.ts.
@@ -295,6 +297,7 @@ export const NAV_ITEM_GROUP: Record<ModuleKey, keyof typeof NAV_GROUP_LABEL> = {
   tasks: "chung",
   performance: "chung",
   roadmap: "chung",
+  calendar: "chung",
   hrRequests: "nhanSu",
   hrApprovals: "nhanSu",
   hrTimetable: "nhanSu",

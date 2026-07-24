@@ -20,6 +20,7 @@ const NAV_ICON: Record<ModuleKey, React.ReactNode> = {
   tasks: <CheckSquareIcon />,
   performance: <TrendingUpIcon />,
   roadmap: <MountainIcon />,
+  calendar: <CalendarIcon />,
   hrRequests: <FileIcon />,
   hrApprovals: <CheckCircleIcon />,
   hrTimetable: <CalendarIcon />,

@@ -1,0 +1,93 @@
+.rbc-calendar {
+  font-family: var(--font-body);
+}
+
+.rbc-header {
+  border-bottom: 1px solid var(--color-border);
+  padding: 8px 0;
+}
+
+.rbc-header rbc-button {
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.rbc-today {
+  background-color: var(--color-navy-tint);
+}
+
+.rbc-btn-group button {
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.rbc-btn-group button:hover {
+  background: var(--color-surface-2);
+}
+
+.rbc-btn-group button.rbc-active {
+  background: var(--color-navy);
+  color: #fff;
+  border-color: var(--color-navy);
+}
+
+.rbc-month-view {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.rbc-day-bg {
+  background: var(--color-surface);
+}
+
+.rbc-off-range-bg {
+  background: var(--color-surface-2);
+}
+
+.rbc-month-header {
+  background: var(--color-surface-2);
+}
+
+.rbc-date-cell {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.rbc-date-cell strong {
+  color: var(--color-text);
+}
+
+.rbc-timeslot-group {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rbc-time-view .rbc-header {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rbc-time-content {
+  border-top: 1px solid var(--color-border);
+}
+
+.rbc-day-slot .rbc-event {
+  border-radius: 4px;
+  font-size: 11.5px;
+  padding: 2px 6px;
+}
+
+.rbc-allday-cell {
+  background: var(--color-surface-2);
+}
+
+.rbc-toolbar {
+  margin-bottom: 12px;
+}
+
+.rbc-toolbar-label {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-text);
+}
